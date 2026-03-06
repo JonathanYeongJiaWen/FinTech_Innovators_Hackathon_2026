@@ -1,6 +1,6 @@
 # Habitat Finance: Composable Wealth Wellness Hub
 
-**Team Name:** [XiaoJongBao]
+**Team Name:** XiaoJongBao  
 **Video Pitch:** [Insert YouTube Link Here]
 
 ## About The Project
