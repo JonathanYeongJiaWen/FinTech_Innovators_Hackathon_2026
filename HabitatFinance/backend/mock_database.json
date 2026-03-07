@@ -1,0 +1,29 @@
+﻿{
+  "portfolioId": "user_98765",
+  "assets": [
+    {
+      "assetId": "ast_001",
+      "name": "Apple Inc. (AAPL)",
+      "assetClass": "Equities",
+      "currentValueUSD": 150000.00,
+      "liquidityTier": "High",
+      "riskMetrics": { "expectedReturn": 0.08, "historicalVolatility": 0.18 }
+    },
+    {
+      "assetId": "ast_002",
+      "name": "SGX Tokenised Treasury Bill",
+      "assetClass": "Fixed_Income",
+      "currentValueUSD": 50000.00,
+      "liquidityTier": "High",
+      "riskMetrics": { "expectedReturn": 0.035, "historicalVolatility": 0.02 }
+    },
+    {
+      "assetId": "ast_003",
+      "name": "Private Commercial Real Estate",
+      "assetClass": "Private_Equity",
+      "currentValueUSD": 250000.00,
+      "liquidityTier": "Low",
+      "riskMetrics": { "expectedReturn": 0.12, "historicalVolatility": 0.15 }
+    }
+  ]
+}
