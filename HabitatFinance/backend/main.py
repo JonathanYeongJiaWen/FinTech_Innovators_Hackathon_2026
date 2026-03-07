@@ -1,3 +1,5 @@
+# FEATURE 2: Financial Wellness Engine
+
 import json
 from pathlib import Path
 
@@ -41,7 +43,11 @@ class WellnessResponse(BaseModel):
 # Endpoint
 # ---------------------------------------------------------------------------
 
-@app.get("/api/v1/wellness", response_model=WellnessResponse)
+@app.get(
+    "/api/v1/wellness", 
+    response_model=WellnessResponse, 
+    tags=["Feature 2: Financial Wellness Engine"]
+)
 def get_financial_wellness() -> WellnessResponse:
     """
     Financial Wellness Engine.
