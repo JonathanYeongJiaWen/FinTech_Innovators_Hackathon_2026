@@ -122,6 +122,7 @@ def get_financial_wellness() -> WellnessResponse:
             "liquidityTier":       asset["liquidityTier"],
             "expectedReturn":      asset["riskMetrics"]["expectedReturn"],
             "historicalVolatility": asset["riskMetrics"]["historicalVolatility"],
+            "beta":                asset["riskMetrics"].get("beta", 1.0),
         }
         for asset in data["assets"]
     ]
@@ -195,25 +196,60 @@ def get_financial_wellness() -> WellnessResponse:
 # Feature 4: Macro Stress-Tester
 # ---------------------------------------------------------------------------
 
+# Asset classes considered highly liquid for the liquidity check.
+LIQUID_ASSET_CLASSES = {"Cash", "Equities"}
+# Asset classes / sectors that signal illiquid real-asset concentration.
+ILLIQUID_REAL_ASSET_INDICATORS = {"Real Estate", "HDB", "Private_Equity"}
+
+
 def _compute_wellness_score(df: pd.DataFrame, value_col: str) -> tuple[float, float]:
     """
-    Shared helper: given a DataFrame with a value column, expected returns,
-    volatilities, and asset classes, returns (sharpe_ratio, wellness_score).
+    Advanced wellness scoring incorporating:
+      1. Sharpe Ratio (base score)
+      2. Concentration Risk Adjustment (volatility penalty)
+      3. Beta Risk Penalty (high-beta or excessively low-beta portfolios)
+      4. Liquidity Penalty (insufficient liquid holdings relative to
+         illiquid real-asset exposure)
+
+    Returns (sharpe_ratio, wellness_score) with score clamped to [0, 100].
     """
     total = float(df[value_col].sum())
     if total == 0.0:
         return 0.0, 0.0
 
     weight = df[value_col] / total
+
+    # --- Sharpe Ratio -------------------------------------------------------
     port_return = float(np.dot(weight, df["expectedReturn"]))
     port_vol = float(np.dot(weight, df["historicalVolatility"]))
 
+    # Concentration risk: penalise volatility when one asset class > 60%.
     class_weights = df.groupby("assetClass")[value_col].sum() / total
     if float(class_weights.max()) > 0.60:
         port_vol *= 1.15
 
     sharpe = float((port_return - RISK_FREE_RATE) / port_vol) if port_vol else 0.0
-    wellness = round(min(max(sharpe / SHARPE_MAX * 100.0, 0.0), 100.0), 1)
+    wellness = min(max(sharpe / SHARPE_MAX * 100.0, 0.0), 100.0)
+
+    # --- Beta Risk Penalty --------------------------------------------------
+    if "beta" in df.columns:
+        port_beta = float(np.dot(weight, df["beta"]))
+        if port_beta > 1.2 or port_beta < 0.5:
+            wellness *= 0.90  # 10 % penalty
+
+    # --- Liquidity Penalty --------------------------------------------------
+    liquid_mask = df["assetClass"].isin(LIQUID_ASSET_CLASSES)
+    liquid_weight = float(weight[liquid_mask].sum())
+
+    has_illiquid_real_assets = (
+        df["assetClass"].isin(ILLIQUID_REAL_ASSET_INDICATORS).any()
+        or df.get("sector", pd.Series(dtype=str)).isin(ILLIQUID_REAL_ASSET_INDICATORS).any()
+    )
+    if liquid_weight < 0.15 and has_illiquid_real_assets:
+        wellness -= 15.0
+
+    # --- Clamp to [0, 100] --------------------------------------------------
+    wellness = round(min(max(wellness, 0.0), 100.0), 1)
     return sharpe, wellness
 
 
@@ -256,6 +292,7 @@ async def run_stress_test(request: ScenarioRequest) -> ScenarioResponse:
             "liquidityTier":       asset["liquidityTier"],
             "expectedReturn":      asset["riskMetrics"]["expectedReturn"],
             "historicalVolatility": asset["riskMetrics"]["historicalVolatility"],
+            "beta":                asset["riskMetrics"].get("beta", 1.0),
         }
         for asset in data["assets"]
     ]

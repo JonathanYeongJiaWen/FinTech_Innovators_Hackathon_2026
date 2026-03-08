@@ -8,7 +8,7 @@
       "sector": "Technology",
       "currentValueUSD": 150000.00,
       "liquidityTier": "High",
-      "riskMetrics": { "expectedReturn": 0.08, "historicalVolatility": 0.18 }
+      "riskMetrics": { "expectedReturn": 0.08, "historicalVolatility": 0.18, "beta": 1.15 }
     },
     {
       "assetId": "ast_002",
@@ -17,7 +17,7 @@
       "sector": "Government",
       "currentValueUSD": 50000.00,
       "liquidityTier": "High",
-      "riskMetrics": { "expectedReturn": 0.035, "historicalVolatility": 0.02 }
+      "riskMetrics": { "expectedReturn": 0.035, "historicalVolatility": 0.02, "beta": 0.10 }
     },
     {
       "assetId": "ast_003",
@@ -26,7 +26,7 @@
       "sector": "Real Estate",
       "currentValueUSD": 250000.00,
       "liquidityTier": "Low",
-      "riskMetrics": { "expectedReturn": 0.12, "historicalVolatility": 0.15 }
+      "riskMetrics": { "expectedReturn": 0.12, "historicalVolatility": 0.15, "beta": 0.65 }
     },
     {
       "assetId": "ast_004",
@@ -35,7 +35,7 @@
       "sector": "Technology",
       "currentValueUSD": 60000.00,
       "liquidityTier": "High",
-      "riskMetrics": { "expectedReturn": 0.14, "historicalVolatility": 0.28 }
+      "riskMetrics": { "expectedReturn": 0.14, "historicalVolatility": 0.28, "beta": 1.65 }
     },
     {
       "assetId": "ast_005",
@@ -44,7 +44,7 @@
       "sector": "Financial Services",
       "currentValueUSD": 80000.00,
       "liquidityTier": "High",
-      "riskMetrics": { "expectedReturn": 0.09, "historicalVolatility": 0.20 }
+      "riskMetrics": { "expectedReturn": 0.09, "historicalVolatility": 0.20, "beta": 1.10 }
     }
   ]
 }

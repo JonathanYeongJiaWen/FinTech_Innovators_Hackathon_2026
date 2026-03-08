@@ -4,7 +4,8 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
-import { TrendingDown, Percent, RefreshCw, AlertTriangle, ArrowRight, Sparkles } from "lucide-react"
+import { TrendingDown, Percent, RefreshCw, AlertTriangle, ArrowRight, Sparkles, Info } from "lucide-react"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 
 type Scenario = "tech-crash" | "rate-hike"
 
@@ -35,6 +36,7 @@ export function MacroStressTester() {
   const [severityMultiplier, setSeverityMultiplier] = useState([1.5])
   const [isLoading, setIsLoading] = useState(false)
   const [aiAnalysis, setAiAnalysis] = useState("")
+  const [simulationReasoning, setSimulationReasoning] = useState("")
   const [projectedNetWorth, setProjectedNetWorth] = useState<number | string>("")
   const [projectedWellnessFromAPI, setProjectedWellnessFromAPI] = useState<number | null>(null)
 
@@ -53,6 +55,7 @@ export function MacroStressTester() {
   const handleSimulation = async () => {
     setIsLoading(true)
     setAiAnalysis("")
+    setSimulationReasoning("")
     try {
       const res = await fetch("http://127.0.0.1:8000/api/v1/stress-test", {
         method: "POST",
@@ -70,6 +73,7 @@ export function MacroStressTester() {
       setProjectedNetWorth(data.projectedNetWorthUSD)
       setProjectedWellnessFromAPI(data.projectedWellnessScore)
       setAiAnalysis(data.aiAnalysis)
+      setSimulationReasoning(data.aiAnalysis)
     } catch (err) {
       setAiAnalysis(`Error: ${err instanceof Error ? err.message : "Unknown error"}`)
     } finally {
@@ -179,11 +183,18 @@ export function MacroStressTester() {
                   variant="default"
                 />
                 <ArrowRight className="size-5 text-muted-foreground flex-shrink-0" />
-                <MetricBox
-                  label="Projected"
-                  value={`$${displayedNetWorth.toLocaleString()}`}
-                  variant="destructive"
-                />
+                {isLoading ? (
+                  <div className="flex-1 p-4 rounded-xl border bg-destructive/10 border-destructive/20 animate-pulse">
+                    <p className="text-xs text-muted-foreground mb-1">Projected</p>
+                    <p className="text-sm font-medium text-destructive">Calculating Risk…</p>
+                  </div>
+                ) : (
+                  <MetricBox
+                    label="Projected"
+                    value={`$${displayedNetWorth.toLocaleString()}`}
+                    variant="destructive"
+                  />
+                )}
               </div>
             </div>
 
@@ -197,11 +208,29 @@ export function MacroStressTester() {
                   variant="default"
                 />
                 <ArrowRight className="size-5 text-muted-foreground flex-shrink-0" />
-                <MetricBox
-                  label="Projected"
-                  value={displayedWellness.toString()}
-                  variant="destructive"
-                />
+                {isLoading ? (
+                  <div className="flex-1 p-4 rounded-xl border bg-destructive/10 border-destructive/20 animate-pulse">
+                    <p className="text-xs text-muted-foreground mb-1">Projected</p>
+                    <p className="text-sm font-medium text-destructive">Calculating Risk…</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 p-4 rounded-xl border bg-destructive/10 border-destructive/20">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs text-muted-foreground mb-1">Projected</p>
+                      {simulationReasoning && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="size-3.5 text-muted-foreground hover:text-foreground cursor-help mb-1" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                            {simulationReasoning}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                    <p className="text-xl font-bold text-destructive">{displayedWellness}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -222,13 +251,21 @@ export function MacroStressTester() {
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Projected Wellness</span>
-                  <span className="text-destructive font-medium">{displayedWellness}/100</span>
+                  {isLoading ? (
+                    <span className="text-destructive font-medium animate-pulse">…/100</span>
+                  ) : (
+                    <span className="text-destructive font-medium">{displayedWellness}/100</span>
+                  )}
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-destructive rounded-full transition-all duration-500"
-                    style={{ width: `${displayedWellness}%` }}
-                  />
+                  {isLoading ? (
+                    <div className="h-full w-full bg-destructive/40 rounded-full animate-pulse" />
+                  ) : (
+                    <div 
+                      className="h-full bg-destructive rounded-full transition-all duration-500"
+                      style={{ width: `${displayedWellness}%` }}
+                    />
+                  )}
                 </div>
               </div>
             </div>
