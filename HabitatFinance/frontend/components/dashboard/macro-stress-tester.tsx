@@ -25,23 +25,56 @@ const scenarios = {
   },
 }
 
+const BACKEND_SCENARIO_IDS: Record<Scenario, string> = {
+  "tech-crash": "TECH_CRASH",
+  "rate-hike": "FED_RATE_HIKE",
+}
+
 export function MacroStressTester() {
   const [selectedScenario, setSelectedScenario] = useState<Scenario>("tech-crash")
   const [severityMultiplier, setSeverityMultiplier] = useState([1.5])
-  const [isRebalancing, setIsRebalancing] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [aiAnalysis, setAiAnalysis] = useState("")
+  const [projectedNetWorth, setProjectedNetWorth] = useState<number | string>("")
+  const [projectedWellnessFromAPI, setProjectedWellnessFromAPI] = useState<number | null>(null)
 
   const currentNetWorth = 1250000
   const currentWellness = 82
 
   const scenario = scenarios[selectedScenario]
   const impact = scenario.baseImpact * severityMultiplier[0]
-  const projectedNetWorth = Math.round(currentNetWorth * (1 + impact))
-  const projectedWellness = Math.max(0, Math.round(currentWellness + scenario.wellnessImpact * severityMultiplier[0]))
-  const loss = currentNetWorth - projectedNetWorth
+  const localProjectedNetWorth = Math.round(currentNetWorth * (1 + impact))
+  const localProjectedWellness = Math.max(0, Math.round(currentWellness + scenario.wellnessImpact * severityMultiplier[0]))
+  const loss = currentNetWorth - localProjectedNetWorth
 
-  const handleRebalance = () => {
-    setIsRebalancing(true)
-    setTimeout(() => setIsRebalancing(false), 2000)
+  const displayedNetWorth = projectedNetWorth !== "" ? Number(projectedNetWorth) : localProjectedNetWorth
+  const displayedWellness = projectedWellnessFromAPI !== null ? projectedWellnessFromAPI : localProjectedWellness
+
+  const handleSimulation = async () => {
+    setIsLoading(true)
+    setAiAnalysis("")
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/v1/stress-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scenario_id: BACKEND_SCENARIO_IDS[selectedScenario],
+          severity_multiplier: severityMultiplier[0],
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => null)
+        throw new Error(err?.detail ?? `Request failed (${res.status})`)
+      }
+      const data = await res.json()
+      setProjectedNetWorth(data.projectedNetWorthUSD)
+      setProjectedWellnessFromAPI(data.projectedWellnessScore)
+      setAiAnalysis(data.aiAnalysis)
+    } catch (err) {
+      setAiAnalysis(`Error: ${err instanceof Error ? err.message : "Unknown error"}`)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -148,7 +181,7 @@ export function MacroStressTester() {
                 <ArrowRight className="size-5 text-muted-foreground flex-shrink-0" />
                 <MetricBox
                   label="Projected"
-                  value={`$${projectedNetWorth.toLocaleString()}`}
+                  value={`$${displayedNetWorth.toLocaleString()}`}
                   variant="destructive"
                 />
               </div>
@@ -166,7 +199,7 @@ export function MacroStressTester() {
                 <ArrowRight className="size-5 text-muted-foreground flex-shrink-0" />
                 <MetricBox
                   label="Projected"
-                  value={projectedWellness.toString()}
+                  value={displayedWellness.toString()}
                   variant="destructive"
                 />
               </div>
@@ -189,12 +222,12 @@ export function MacroStressTester() {
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Projected Wellness</span>
-                  <span className="text-destructive font-medium">{projectedWellness}/100</span>
+                  <span className="text-destructive font-medium">{displayedWellness}/100</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-destructive rounded-full transition-all duration-500"
-                    style={{ width: `${projectedWellness}%` }}
+                    style={{ width: `${displayedWellness}%` }}
                   />
                 </div>
               </div>
@@ -203,7 +236,7 @@ export function MacroStressTester() {
         </Card>
       </div>
 
-      {/* Auto-Rebalance Button */}
+      {/* Simulate & AI Analysis */}
       <Card className="bg-card border-border">
         <CardContent className="py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -212,31 +245,41 @@ export function MacroStressTester() {
                 <Sparkles className="size-6 text-accent" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">AI-Powered Rebalancing</h3>
+                <h3 className="font-semibold text-foreground">AI-Powered Stress Test</h3>
                 <p className="text-sm text-muted-foreground">
-                  Automatically optimize your portfolio to minimize stress-test impact
+                  Run a full simulation and get AI-generated analysis of the impact
                 </p>
               </div>
             </div>
             <Button
-              onClick={handleRebalance}
-              disabled={isRebalancing}
+              onClick={handleSimulation}
+              disabled={isLoading}
               size="lg"
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 gap-2"
             >
-              {isRebalancing ? (
+              {isLoading ? (
                 <>
                   <RefreshCw className="size-4 animate-spin" />
-                  Rebalancing...
+                  Simulating...
                 </>
               ) : (
                 <>
-                  <RefreshCw className="size-4" />
-                  Auto-Rebalance Portfolio
+                  <Sparkles className="size-4" />
+                  Simulate {scenarios[selectedScenario].name}
                 </>
               )}
             </Button>
           </div>
+
+          {aiAnalysis && (
+            <div className="mt-6 p-4 rounded-xl bg-muted/30 border border-border">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="size-4 text-accent" />
+                <span className="text-sm font-medium text-foreground">AI Analysis</span>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">{aiAnalysis}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,11 +1,89 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Sparkles, TrendingUp, Lightbulb, Shield } from "lucide-react"
+import { Sparkles, TrendingUp, Lightbulb, Shield, AlertTriangle } from "lucide-react"
+
+function deriveInsights(data: {
+  totalNetWorthUSD: number
+  wellnessScore: number
+  riskMetrics: { expectedReturn: number; volatility: number; sharpeRatio: number }
+  liquidityProfile: { highLiquidityUSD: number; lowLiquidityUSD: number; liquidityWarningFlag: boolean }
+}): string[] {
+  const insights: string[] = []
+  const { riskMetrics, liquidityProfile, wellnessScore } = data
+
+  if (riskMetrics.sharpeRatio < 0.8) {
+    insights.push(
+      `Your Sharpe ratio is ${riskMetrics.sharpeRatio.toFixed(2)}, indicating below-average risk-adjusted returns. Consider rebalancing into lower-volatility assets to improve efficiency.`
+    )
+  } else {
+    insights.push(
+      `Your Sharpe ratio of ${riskMetrics.sharpeRatio.toFixed(2)} reflects strong risk-adjusted performance. Continue monitoring to maintain this balance.`
+    )
+  }
+
+  if (liquidityProfile.liquidityWarningFlag) {
+    insights.push(
+      `Over 60% of your portfolio is in low-liquidity assets ($${liquidityProfile.lowLiquidityUSD.toLocaleString()}). Shifting a portion to high-liquidity holdings would reduce redemption risk.`
+    )
+  } else {
+    insights.push(
+      `Liquidity profile is healthy — $${liquidityProfile.highLiquidityUSD.toLocaleString()} in high-liquidity assets provides a strong buffer for unexpected needs.`
+    )
+  }
+
+  if (riskMetrics.volatility > 0.15) {
+    insights.push(
+      `Portfolio volatility is ${(riskMetrics.volatility * 100).toFixed(1)}%. Diversifying across uncorrelated sectors could reduce this and raise your wellness score above ${wellnessScore}.`
+    )
+  }
+
+  return insights
+}
 
 export function FinancialPulse() {
-  const wellnessScore = 82
+  const [netWorth, setNetWorth] = useState(0)
+  const [wellnessScore, setWellnessScore] = useState(0)
+  const [aiInsights, setAiInsights] = useState<string[]>([])
+  const [isPulseLoading, setIsPulseLoading] = useState(true)
+
   const circumference = 2 * Math.PI * 70
+
+  useEffect(() => {
+    const fetchWellness = async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/v1/wellness")
+        if (!res.ok) throw new Error(`Request failed (${res.status})`)
+        const data = await res.json()
+        setNetWorth(data.totalNetWorthUSD)
+        setWellnessScore(data.wellnessScore)
+        setAiInsights(deriveInsights(data))
+      } catch {
+        setAiInsights(["Unable to load insights — please check that the backend is running."])
+      } finally {
+        setIsPulseLoading(false)
+      }
+    }
+    fetchWellness()
+  }, [])
+
+  if (isPulseLoading) {
+    return (
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="bg-card border-border overflow-hidden animate-pulse">
+          <CardContent className="py-16 flex items-center justify-center">
+            <p className="text-muted-foreground">Loading financial data…</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border animate-pulse">
+          <CardContent className="py-16 flex items-center justify-center">
+            <p className="text-muted-foreground">Loading insights…</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -22,7 +100,7 @@ export function FinancialPulse() {
             {/* Net Worth Display */}
             <div className="flex-1">
               <p className="text-5xl font-bold text-foreground tracking-tight">
-                $1,250,000
+                ${netWorth.toLocaleString()}
               </p>
               <p className="text-sm text-muted-foreground mt-2">
                 <span className="text-primary font-medium">+12.4%</span> from last quarter
@@ -81,16 +159,22 @@ export function FinancialPulse() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <InsightItem
-            icon={<Lightbulb className="size-5 text-primary" />}
-            title="Optimize Tax Efficiency"
-            description="Consider shifting 8% of your equity holdings to tax-advantaged municipal bonds. This could save approximately $4,200 in annual taxes while maintaining similar risk exposure, improving your wellness score by 3 points."
-          />
-          <InsightItem
-            icon={<Shield className="size-5 text-accent" />}
-            title="Diversification Opportunity"
-            description="Your current allocation shows 68% concentration in tech equities. Redistributing 15% to international markets and defensive sectors would reduce volatility by 22% and boost your wellness score by 5 points."
-          />
+          {aiInsights.map((insight, i) => (
+            <InsightItem
+              key={i}
+              icon={
+                i === 0 ? <Lightbulb className="size-5 text-primary" /> :
+                i === 1 ? <Shield className="size-5 text-accent" /> :
+                <AlertTriangle className="size-5 text-primary" />
+              }
+              title={
+                i === 0 ? "Risk-Adjusted Performance" :
+                i === 1 ? "Liquidity & Diversification" :
+                "Volatility Alert"
+              }
+              description={insight}
+            />
+          ))}
         </CardContent>
       </Card>
     </div>

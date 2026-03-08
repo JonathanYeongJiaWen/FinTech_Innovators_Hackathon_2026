@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -12,56 +13,85 @@ import {
 import { Treemap, ResponsiveContainer, Tooltip } from "recharts"
 import { PieChart, TableIcon } from "lucide-react"
 
-// Treemap data structure
-const treemapData = [
-  {
-    name: "Equities",
-    children: [
-      { name: "US Large Cap", size: 350000, color: "oklch(0.72 0.19 160)" },
-      { name: "US Small Cap", size: 120000, color: "oklch(0.62 0.16 160)" },
-      { name: "International", size: 180000, color: "oklch(0.52 0.14 160)" },
-    ],
-  },
-  {
-    name: "Fixed Income",
-    children: [
-      { name: "Treasury Bonds", size: 200000, color: "oklch(0.65 0.18 300)" },
-      { name: "Corporate Bonds", size: 150000, color: "oklch(0.55 0.15 300)" },
-      { name: "Municipal Bonds", size: 100000, color: "oklch(0.45 0.12 300)" },
-    ],
-  },
-  {
-    name: "Digital Assets",
-    children: [
-      { name: "Bitcoin", size: 100000, color: "oklch(0.75 0.15 80)" },
-      { name: "Ethereum", size: 50000, color: "oklch(0.65 0.12 80)" },
-    ],
-  },
-]
+// ---------------------------------------------------------------------------
+// Category colour palette (Calm Design aesthetic)
+// ---------------------------------------------------------------------------
+const CATEGORY_COLORS: Record<string, { base: string; shades: string[] }> = {
+  Equities:     { base: "oklch(0.72 0.19 160)", shades: ["oklch(0.72 0.19 160)", "oklch(0.62 0.16 160)", "oklch(0.52 0.14 160)"] },
+  Fixed_Income: { base: "oklch(0.65 0.18 300)", shades: ["oklch(0.65 0.18 300)", "oklch(0.55 0.15 300)", "oklch(0.45 0.12 300)"] },
+  Private_Equity: { base: "oklch(0.75 0.15 80)", shades: ["oklch(0.75 0.15 80)", "oklch(0.65 0.12 80)", "oklch(0.55 0.10 80)"] },
+  Digital_Assets: { base: "oklch(0.70 0.14 200)", shades: ["oklch(0.70 0.14 200)", "oklch(0.60 0.12 200)", "oklch(0.50 0.10 200)"] },
+}
+const FALLBACK_COLOR = "oklch(0.60 0.10 250)"
 
-// Flatten data for Recharts Treemap
-const flattenData = (data: typeof treemapData) => {
-  return data.flatMap((category) =>
-    category.children.map((child) => ({
-      name: child.name,
-      size: child.size,
-      category: category.name,
-      fill: child.color,
-    }))
-  )
+function displayCategory(raw: string): string {
+  return raw.replace(/_/g, " ")
 }
 
-const flatData = flattenData(treemapData)
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+interface BackendAsset {
+  assetId: string
+  name: string
+  assetClass: string
+  sector: string
+  currentValueUSD: number
+  liquidityTier: string
+}
 
-// Asset table data
-const assets = [
-  { name: "Apple Inc. (AAPL)", category: "Equities", value: 185000, allocation: 14.8 },
-  { name: "US Treasury 10Y Bond", category: "Fixed Income", value: 150000, allocation: 12.0 },
-  { name: "Bitcoin", category: "Digital Assets", value: 100000, allocation: 8.0 },
-  { name: "Microsoft Corp. (MSFT)", category: "Equities", value: 165000, allocation: 13.2 },
-  { name: "Vanguard Total Bond ETF", category: "Fixed Income", value: 125000, allocation: 10.0 },
-]
+interface PortfolioAsset extends BackendAsset {
+  allocation: number
+}
 
+interface FlatNode {
+  name: string
+  size: number
+  category: string
+  fill: string
+}
+
+// ---------------------------------------------------------------------------
+// Transform helpers
+// ---------------------------------------------------------------------------
+function buildTreemapData(assets: PortfolioAsset[]): FlatNode[] {
+  const grouped = new Map<string, PortfolioAsset[]>()
+  for (const a of assets) {
+    const list = grouped.get(a.assetClass) ?? []
+    list.push(a)
+    grouped.set(a.assetClass, list)
+  }
+
+  const flat: FlatNode[] = []
+  for (const [cls, items] of grouped) {
+    const palette = CATEGORY_COLORS[cls]
+    items.forEach((item, i) => {
+      flat.push({
+        name: item.name,
+        size: item.currentValueUSD,
+        category: displayCategory(cls),
+        fill: palette ? palette.shades[i % palette.shades.length] : FALLBACK_COLOR,
+      })
+    })
+  }
+  return flat
+}
+
+function buildLegend(assets: PortfolioAsset[]): { color: string; label: string; value: string }[] {
+  const totals = new Map<string, number>()
+  for (const a of assets) {
+    totals.set(a.assetClass, (totals.get(a.assetClass) ?? 0) + a.currentValueUSD)
+  }
+  return [...totals.entries()].map(([cls, total]) => ({
+    color: CATEGORY_COLORS[cls]?.base ?? FALLBACK_COLOR,
+    label: displayCategory(cls),
+    value: `$${Math.round(total).toLocaleString()}`,
+  }))
+}
+
+// ---------------------------------------------------------------------------
+// Recharts custom content / tooltip
+// ---------------------------------------------------------------------------
 interface TreemapContentProps {
   x?: number
   y?: number
@@ -131,7 +161,51 @@ const CustomTooltip = ({ active, payload }: TreemapTooltipProps) => {
   return null
 }
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 export function WealthAnalytics() {
+  const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAsset[]>([])
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchAssets = async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/v1/assets")
+        if (!res.ok) throw new Error(`Request failed (${res.status})`)
+        const data: BackendAsset[] = await res.json()
+        const total = data.reduce((s, a) => s + a.currentValueUSD, 0)
+        setPortfolioAssets(
+          data.map((a) => ({
+            ...a,
+            allocation: total > 0 ? Math.round((a.currentValueUSD / total) * 1000) / 10 : 0,
+          }))
+        )
+      } catch {
+        // keep empty state — UI will show "No data" gracefully
+      } finally {
+        setIsAnalyticsLoading(false)
+      }
+    }
+    fetchAssets()
+  }, [])
+
+  if (isAnalyticsLoading) {
+    return (
+      <div className="space-y-6">
+        <Card className="bg-card border-border animate-pulse">
+          <CardContent className="py-24 flex items-center justify-center">
+            <p className="text-muted-foreground">Loading portfolio data…</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const flatData = buildTreemapData(portfolioAssets)
+  const legend = buildLegend(portfolioAssets)
+  const maxAllocation = Math.max(...portfolioAssets.map((a) => a.allocation), 1)
+
   return (
     <div className="space-y-6">
       {/* Treemap Card */}
@@ -158,9 +232,9 @@ export function WealthAnalytics() {
           </div>
           {/* Legend */}
           <div className="flex flex-wrap gap-6 mt-6 justify-center">
-            <LegendItem color="oklch(0.72 0.19 160)" label="Equities" value="$650,000" />
-            <LegendItem color="oklch(0.65 0.18 300)" label="Fixed Income" value="$450,000" />
-            <LegendItem color="oklch(0.75 0.15 80)" label="Digital Assets" value="$150,000" />
+            {legend.map((item) => (
+              <LegendItem key={item.label} color={item.color} label={item.label} value={item.value} />
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -184,21 +258,21 @@ export function WealthAnalytics() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {assets.map((asset) => (
-                <TableRow key={asset.name} className="border-border">
+              {portfolioAssets.map((asset) => (
+                <TableRow key={asset.assetId} className="border-border">
                   <TableCell className="font-medium text-foreground">{asset.name}</TableCell>
                   <TableCell>
-                    <CategoryBadge category={asset.category} />
+                    <CategoryBadge category={displayCategory(asset.assetClass)} />
                   </TableCell>
                   <TableCell className="text-right text-foreground font-medium">
-                    ${asset.value.toLocaleString()}
+                    ${asset.currentValueUSD.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary rounded-full"
-                          style={{ width: `${(asset.allocation / 15) * 100}%` }}
+                          style={{ width: `${(asset.allocation / maxAllocation) * 100}%` }}
                         />
                       </div>
                       <span className="text-muted-foreground w-12 text-right">
@@ -240,7 +314,8 @@ function CategoryBadge({ category }: CategoryBadgeProps) {
   const colorMap: Record<string, string> = {
     Equities: "bg-primary/20 text-primary border-primary/30",
     "Fixed Income": "bg-accent/20 text-accent border-accent/30",
-    "Digital Assets": "bg-chart-3/20 text-chart-3 border-chart-3/30",
+    "Private Equity": "bg-chart-3/20 text-chart-3 border-chart-3/30",
+    "Digital Assets": "bg-chart-4/20 text-chart-4 border-chart-4/30",
   }
 
   return (

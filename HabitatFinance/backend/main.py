@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException
 from google import genai
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
@@ -23,6 +24,12 @@ else:
     print(f"✅ SUCCESS: API Key loaded (Starts with: {api_key[:5]})")
 
 app = FastAPI(title="Habitat Finance API", version="1.0.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 DATA_PATH = Path(__file__).parent / "mock_database.json"
 RISK_FREE_RATE = 0.03
@@ -315,3 +322,44 @@ async def run_stress_test(request: ScenarioRequest) -> ScenarioResponse:
         projectedWellnessScore=projected_wellness,
         aiAnalysis=ai_analysis,
     )
+
+
+# ---------------------------------------------------------------------------
+# Feature: Portfolio Assets
+# ---------------------------------------------------------------------------
+
+class AssetResponse(BaseModel):
+    assetId: str
+    name: str
+    assetClass: str
+    sector: str
+    currentValueUSD: float
+    liquidityTier: str
+
+
+@app.get(
+    "/api/v1/assets",
+    response_model=list[AssetResponse],
+    tags=["Portfolio Assets"],
+)
+def get_portfolio_assets() -> list[AssetResponse]:
+    """Return the raw asset list from the portfolio data file."""
+    try:
+        with open(DATA_PATH, "r", encoding="utf-8-sig") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Portfolio data file not found.")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Portfolio data file contains invalid JSON.")
+
+    return [
+        AssetResponse(
+            assetId=asset["assetId"],
+            name=asset["name"],
+            assetClass=asset["assetClass"],
+            sector=asset["sector"],
+            currentValueUSD=asset["currentValueUSD"],
+            liquidityTier=asset["liquidityTier"],
+        )
+        for asset in data["assets"]
+    ]
