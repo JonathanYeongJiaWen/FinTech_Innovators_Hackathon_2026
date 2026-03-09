@@ -13,8 +13,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Treemap, ResponsiveContainer, Tooltip } from "recharts"
-import { PieChart, TableIcon, Sparkles, Loader2 } from "lucide-react"
+import { PieChart, TableIcon, Sparkles, Loader2, Activity } from "lucide-react"
 import { MilestoneSummary } from "@/components/dashboard/milestone-summary"
+import { RiskSensitivityRadar } from "@/components/dashboard/risk-sensitivity-radar"
 
 // ---------------------------------------------------------------------------
 // Category colour palette - Cleaned and Updated
@@ -488,6 +489,18 @@ export function WealthAnalytics() {
               ))}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2">
+            <Activity className="size-5 text-primary" />
+            Risk Sensitivity Radar
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RiskSensitivityRadar assets={portfolioAssets} />
         </CardContent>
       </Card>
     </div>
