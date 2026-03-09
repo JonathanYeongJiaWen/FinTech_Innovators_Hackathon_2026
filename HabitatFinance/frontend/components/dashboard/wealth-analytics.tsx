@@ -33,7 +33,7 @@ Equities: {
   },
   Digital_Assets: { 
     base: "#739bd4", 
-    shades: ["#c0c5ce", "#65737e"] 
+    shades: ["#8a817c", "#463f3a", "#bcb8b1"] 
   },
 }
 const FALLBACK_COLOR = "#FFA500"
