@@ -29,6 +29,7 @@ import {
   Users,
   ShieldAlert,
 } from "lucide-react"
+import { BehavioralInsightsPanel } from "@/components/dashboard/behavioral-insights-panel"
 
 interface PortfolioSummary {
   asset_class_1: string
@@ -189,7 +190,7 @@ export function AdvisorDashboard() {
           if (!open) setSelectedClient(null)
         }}
       >
-        <SheetContent side="right" className="sm:max-w-lg w-full overflow-y-auto">
+        <SheetContent side="right" className="sm:max-w-2xl w-full overflow-y-auto">
           {selectedClient && (
             <>
               <SheetHeader>
@@ -308,6 +309,11 @@ export function AdvisorDashboard() {
                   </div>
                 </div>
               )}
+
+              {/* Behavioral Insights */}
+              <div className="mt-8">
+                <BehavioralInsightsPanel clientId={selectedClient.client_id} />
+              </div>
 
               {/* AI Insight Section */}
               <div className="mt-8">

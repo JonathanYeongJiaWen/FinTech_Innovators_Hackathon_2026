@@ -1,0 +1,7 @@
+com\habitatfinance\HabitatFinanceApplication.class
+com\habitatfinance\dto\CostOfBehaviorDTO$AlphaDirection.class
+com\habitatfinance\controller\BehavioralInsightsController.class
+com\habitatfinance\dto\BehavioralInsightsResponse.class
+com\habitatfinance\dto\BehavioralProfileDTO.class
+com\habitatfinance\dto\CostOfBehaviorDTO.class
+com\habitatfinance\service\BehaviorAnalyticsService.class

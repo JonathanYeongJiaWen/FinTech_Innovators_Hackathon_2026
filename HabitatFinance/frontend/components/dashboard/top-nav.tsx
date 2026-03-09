@@ -6,16 +6,22 @@ import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
 import { Wallet, Moon, Sun, User, LayoutDashboard, BarChart3, Zap } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useViewMode } from "@/lib/view-mode-context"
 
-interface TopNavProps {
-  viewMode: "client" | "advisor"
-  onViewModeChange: (mode: "client" | "advisor") => void
-}
-
-export function TopNav({ viewMode, onViewModeChange }: TopNavProps) {
+export function TopNav() {
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
+  const router = useRouter()
+  const { viewMode, setViewMode } = useViewMode()
+
+  function handleViewModeChange(checked: boolean) {
+    const next = checked ? "advisor" : "client"
+    setViewMode(next)
+    if (next === "advisor") {
+      router.push("/overview")
+    }
+  }
 
   // Updated names and linked to the folder structure visible in your screenshot
   const navItems = [
@@ -66,7 +72,7 @@ export function TopNav({ viewMode, onViewModeChange }: TopNavProps) {
               <span className={viewMode === "client" ? "text-foreground" : "text-muted-foreground"}>Client</span>
               <Switch
                 checked={viewMode === "advisor"}
-                onCheckedChange={(checked) => onViewModeChange(checked ? "advisor" : "client")}
+                onCheckedChange={handleViewModeChange}
               />
               <span className={viewMode === "advisor" ? "text-foreground" : "text-muted-foreground"}>Advisor</span>
             </div>

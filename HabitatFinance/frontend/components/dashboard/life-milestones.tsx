@@ -34,7 +34,13 @@ import {
   AlertTriangle,
   Target,
   X,
+  Info,
 } from "lucide-react"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip"
 
 // ---- constants ------------------------------------------------------------
 
@@ -120,7 +126,15 @@ export function LifeMilestones() {
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Target className="size-5 text-[#108548]" />
-            Life Milestones & Scenarios
+            Life Milestones &amp; Scenarios
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="size-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-xs">
+                Track your progress towards major life goals and see how simulated market shocks could impact your timeline.
+              </TooltipContent>
+            </Tooltip>
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Plan ahead for major goals and stress-test against financial shocks.

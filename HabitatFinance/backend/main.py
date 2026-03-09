@@ -829,14 +829,45 @@ async def evaluate_scenarios(request: ScenariosRequest) -> ScenariosResponse:
         )
         try:
             response = await client.aio.models.generate_content(
-                model="gemini-2.5-flash", contents=prompt
+                model="gemini-1.5-flash", contents=prompt
             )
             recommendation = response.text.strip()
         except Exception:
-            recommendation = (
-                "Unable to generate AI recommendation at this time. "
-                "Please review your liquid reserves manually."
-            )
+            _months_runway = round(request.cash_reserves / max(request.monthly_burn_rate, 1))
+            if scenario.type == "Shock":
+                if status == "At Risk":
+                    recommendation = (
+                        f"A {scenario.label} event would exhaust your emergency buffer — "
+                        f"you currently face a ${abs(impact_amount):,.0f} shortfall against "
+                        f"this shock. Build cash reserves to at least "
+                        f"${scenario.target_amount * 1.2:,.0f} by directing "
+                        f"${round(scenario.target_amount * 0.2 / 12):,.0f}/month into a "
+                        f"high-yield savings account or liquid money-market fund."
+                    )
+                else:
+                    recommendation = (
+                        f"Your emergency buffer comfortably covers a {scenario.label} event, "
+                        f"leaving a ${impact_amount:,.0f} surplus. Your current "
+                        f"{_months_runway}-month cash runway is healthy — consider parking "
+                        f"the excess in a short-duration T-bill to earn risk-free yield "
+                        f"while keeping full liquidity."
+                    )
+            else:
+                if status == "At Risk":
+                    _monthly_gap = round(abs(impact_amount) / 12)
+                    recommendation = (
+                        f"Your {scenario.label} goal has a ${abs(impact_amount):,.0f} funding "
+                        f"gap. Redirect approximately ${_monthly_gap:,.0f}/month into a "
+                        f"dedicated goal savings account or low-volatility unit trust to close "
+                        f"this shortfall before the target milestone date."
+                    )
+                else:
+                    recommendation = (
+                        f"Excellent — your liquid assets fully cover the {scenario.label} "
+                        f"goal with a ${impact_amount:,.0f} surplus. Maintain your current "
+                        f"allocation and review annually to ensure milestone funding stays "
+                        f"on track as market conditions evolve."
+                    )
 
         results.append(
             ScenarioResult(
@@ -1005,10 +1036,38 @@ async def run_stress_test(request: ScenarioRequest) -> ScenarioResponse:
         f"scenario and what it means for the client going forward."
     )
 
-    response = await client.aio.models.generate_content(
-        model="gemini-2.5-flash", contents=prompt
-    )
-    ai_analysis = response.text
+    try:
+        response = await client.aio.models.generate_content(
+            model="gemini-1.5-flash", contents=prompt
+        )
+        ai_analysis = response.text
+    except Exception:
+        _stress_fallbacks: dict[str, str] = {
+            "TECH_CRASH": (
+                f"A technology sector crash compressed growth-oriented equities across your "
+                f"portfolio, with {worst_asset_name} recording the steepest decline and "
+                f"driving a ${abs(net_change_usd):,.0f} total reduction in net worth. "
+                f"Capping sector concentration below 25% of AUM and diversifying into "
+                f"defensive sectors such as healthcare and consumer staples would meaningfully "
+                f"reduce your portfolio's sensitivity to single-sector drawdowns."
+            ),
+            "FED_RATE_HIKE": (
+                f"Rising rates simultaneously pressured equities and marked fixed-income "
+                f"instruments to market, producing a ${abs(net_change_usd):,.0f} net decline "
+                f"with {worst_asset_name} most exposed to duration risk. Rotating "
+                f"long-duration bonds into floating-rate notes or 1–3 year T-bills would "
+                f"materially reduce your portfolio's interest-rate sensitivity going forward."
+            ),
+        }
+        ai_analysis = _stress_fallbacks.get(
+            request.scenario_id,
+            (
+                f"The '{scenario_name}' scenario produced a ${abs(net_change_usd):,.0f} "
+                f"shift in portfolio value, with '{worst_asset_name}' as the most exposed "
+                f"position. Reviewing concentration limits and maintaining at least 6 months "
+                f"of liquid reserves will help buffer against similar macro shocks."
+            ),
+        )
 
     # --- Build response -----------------------------------------------------
     return ScenarioResponse(
@@ -1372,11 +1431,50 @@ async def generate_advisor_insight(request: InsightRequest) -> InsightResponse:
         "Do not include any text outside the JSON object."
     )
 
-    response = await client.aio.models.generate_content(
-        model="gemini-2.5-flash", contents=prompt
-    )
+    try:
+        response = await client.aio.models.generate_content(
+            model="gemini-1.5-flash", contents=prompt
+        )
+        raw = response.text.strip()
+    except Exception:
+        # Build context-aware fallback if Gemini Quota is reached.
+        _ac1 = request.portfolio_summary.asset_class_1
+        _ac1_pct = request.portfolio_summary.asset_class_1_pct
+        _ac2 = request.portfolio_summary.asset_class_2
+        _ac2_pct = request.portfolio_summary.asset_class_2_pct
+        _ws = request.wellness_score
+        if at_risk_scenarios:
+            _worst = max(at_risk_scenarios, key=lambda _s: _s.shortfall)
+            _fallback_risk = (
+                f"{_worst.label} is flagged 'At Risk' with a ${_worst.shortfall:,.0f} "
+                f"funding shortfall, compounded by heavy {_ac1} concentration "
+                f"({_ac1_pct:.0f}% of AUM) and a wellness score of {_ws:.0f}/100."
+            )
+            _trim_pct = min(round(_ac1_pct * 0.15), 15)
+            _fallback_action = (
+                f"Liquidate {_trim_pct}% of {_ac1} holdings and redirect "
+                f"${_worst.shortfall:,.0f} into a high-yield liquid cash account "
+                f"earmarked for the {_worst.label} shortfall; review remaining "
+                f"{_ac2} ({_ac2_pct:.0f}%) allocation quarterly."
+            )
+        else:
+            _heavy = _ac1 if _ac1_pct >= _ac2_pct else _ac2
+            _heavy_pct = _ac1_pct if _ac1_pct >= _ac2_pct else _ac2_pct
+            _fallback_risk = (
+                f"No immediate at-risk scenarios — however {_heavy} represents "
+                f"{_heavy_pct:.0f}% of AUM, a concentration risk if sector "
+                f"conditions deteriorate. Wellness score: {_ws:.0f}/100."
+            )
+            _fallback_action = (
+                f"Trim {_heavy} by 10% and rotate proceeds into diversified "
+                f"global fixed-income or a multi-asset fund to reduce single-class "
+                f"concentration and improve portfolio resilience."
+            )
+        return InsightResponse(
+            primary_risk=_fallback_risk,
+            recommended_action=_fallback_action,
+        )
 
-    raw = response.text.strip()
     # Strip markdown code fences if Gemini wraps the JSON
     if raw.startswith("```"):
         raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
@@ -1400,4 +1498,100 @@ async def generate_advisor_insight(request: InsightRequest) -> InsightResponse:
     return InsightResponse(
         primary_risk=str(parsed["primary_risk"]),
         recommended_action=str(parsed["recommended_action"]),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Feature: Behavioral Risk Tracking
+# ---------------------------------------------------------------------------
+
+from decimal import Decimal
+from enum import Enum
+
+
+class AlphaDirection(str, Enum):
+    MISSED_GAINS = "MISSED_GAINS"
+    PREVENTED_LOSSES = "PREVENTED_LOSSES"
+    NEUTRAL = "NEUTRAL"
+
+
+class BehavioralProfileResponse(BaseModel):
+    lossAversion: int
+    overconfidence: int
+    herdMentality: int
+    dispositionEffect: int
+
+
+class CostOfBehaviorResponse(BaseModel):
+    actualPortfolioValue: float
+    ghostPortfolioValue: float
+    behavioralAlpha: float
+    alphaDirection: AlphaDirection
+
+
+class BehavioralInsightsResponse(BaseModel):
+    behavioralProfile: BehavioralProfileResponse
+    costOfBehavior: CostOfBehaviorResponse
+
+
+# Per-client mock behavioral data
+_BEHAVIORAL_DATA: dict[str, dict] = {
+    "CLI-001": {
+        "profile": {"lossAversion": 42, "overconfidence": 55, "herdMentality": 30, "dispositionEffect": 48},
+        "cost": {
+            "actualPortfolioValue": 2_450_000.00,
+            "ghostPortfolioValue": 2_410_000.00,
+            "behavioralAlpha": 40_000.00,
+            "alphaDirection": AlphaDirection.PREVENTED_LOSSES,
+        },
+    },
+    "CLI-002": {
+        "profile": {"lossAversion": 78, "overconfidence": 80, "herdMentality": 72, "dispositionEffect": 85},
+        "cost": {
+            "actualPortfolioValue": 870_000.00,
+            "ghostPortfolioValue": 1_042_000.00,
+            "behavioralAlpha": -172_000.00,
+            "alphaDirection": AlphaDirection.MISSED_GAINS,
+        },
+    },
+    "CLI-003": {
+        "profile": {"lossAversion": 35, "overconfidence": 40, "herdMentality": 22, "dispositionEffect": 38},
+        "cost": {
+            "actualPortfolioValue": 5_120_000.00,
+            "ghostPortfolioValue": 5_090_000.00,
+            "behavioralAlpha": 30_000.00,
+            "alphaDirection": AlphaDirection.PREVENTED_LOSSES,
+        },
+    },
+    "CLI-004": {
+        "profile": {"lossAversion": 62, "overconfidence": 45, "herdMentality": 38, "dispositionEffect": 71},
+        "cost": {
+            "actualPortfolioValue": 1_042_350.00,
+            "ghostPortfolioValue": 1_087_920.00,
+            "behavioralAlpha": -45_570.00,
+            "alphaDirection": AlphaDirection.MISSED_GAINS,
+        },
+    },
+}
+
+
+@app.get(
+    "/api/v1/advisor/clients/{client_id}/behavioral-insights",
+    response_model=BehavioralInsightsResponse,
+    tags=["Advisor View"],
+)
+def get_behavioral_insights(client_id: str) -> BehavioralInsightsResponse:
+    """
+    Return the Behavioral Health Radar (bias scores) and
+    Cost-of-Behavior (ghost portfolio diff) for a given client.
+    """
+    data = _BEHAVIORAL_DATA.get(client_id)
+    if not data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No behavioral data found for client '{client_id}'.",
+        )
+    return BehavioralInsightsResponse(
+        behavioralProfile=BehavioralProfileResponse(**data["profile"]),
+        costOfBehavior=CostOfBehaviorResponse(**data["cost"]),
     )
