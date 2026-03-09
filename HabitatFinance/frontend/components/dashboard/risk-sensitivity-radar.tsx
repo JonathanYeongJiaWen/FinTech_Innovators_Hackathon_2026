@@ -30,19 +30,21 @@ export function RiskSensitivityRadar({ isOptimized = false }: RiskSensitivityRad
             margin={{ top: 40, right: 40, bottom: 40, left: 40 }}
             gridLabelOffset={28}
             curve="linearClosed"
-            borderWidth={2}
+            borderWidth={3}
             borderColor={{ from: "color" }}
             gridLevels={5}
             gridShape="circular"
             enableDots={true}
-            dotSize={6}
-            colors={["#ef4444", "#108548"]}
-            fillOpacity={0.25}
-            blendMode="multiply"
+            dotSize={8}
+            dotBorderWidth={2}
+            dotBorderColor={{ from: "color" }}
+            colors={["#ef4444", "#10b981"]}
+            fillOpacity={0.15}
+            blendMode="normal"
             animate={true}
             theme={{
-              text: { fontSize: 11, fill: "hsl(var(--muted-foreground))", fontWeight: 600 },
-              grid: { line: { stroke: "hsl(var(--border))", strokeWidth: 1 } },
+              text: { fontSize: 12, fill: "hsl(var(--foreground))", fontWeight: 600 },
+              grid: { line: { stroke: "hsl(var(--muted-foreground) / 0.3)", strokeWidth: 1.5 } },
               tooltip: {
                 container: {
                   background: "hsl(var(--background))",
@@ -81,16 +83,16 @@ export function RiskSensitivityRadar({ isOptimized = false }: RiskSensitivityRad
           {/* THE CORRECTION (Revealed on Optimize) */}
           {isOptimized && (
             <div className="space-y-2 pt-2 border-t border-border animate-in fade-in slide-in-from-top-2 duration-700">
-              <p className="text-[10px] font-bold text-[#108548] uppercase flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#108548]" />
+              <p className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 Optimization Correction
               </p>
               <p className="text-xs leading-relaxed text-foreground font-medium">
                 Our algorithm reduced Tech/Digital exposure by 42% by reallocating toward 
                 interest-rate sensitive Fixed Income, effectively neutralizing the "stretch" effect.
               </p>
-              <div className="mt-2 bg-[#108548]/10 p-2 rounded border border-[#108548]/20">
-                <p className="text-[10px] text-[#108548] font-bold">Resilience Gain: +34.2%</p>
+              <div className="mt-2 bg-emerald-500/10 p-2 rounded border border-emerald-500/20">
+                <p className="text-[10px] text-emerald-500 font-bold">Resilience Gain: +34.2%</p>
               </div>
             </div>
           )}
@@ -109,10 +111,10 @@ export function RiskSensitivityRadar({ isOptimized = false }: RiskSensitivityRad
             {isOptimized && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-[#108548]" />
+                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
                   <span>Optimized Risk</span>
                 </div>
-                <span className="text-[#108548] font-bold">Balanced</span>
+                <span className="text-emerald-500 font-bold">Balanced</span>
               </div>
             )}
           </div>
