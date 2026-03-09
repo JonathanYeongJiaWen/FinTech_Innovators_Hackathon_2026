@@ -2,5 +2,6 @@ fastapi
 uvicorn[standard]
 pandas
 numpy
+scipy
 google-genai
 python-dotenv
