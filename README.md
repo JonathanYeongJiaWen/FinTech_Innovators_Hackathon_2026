@@ -17,7 +17,11 @@ Crucially, Myney features an AI-driven "Macro Stress-Tester." Users can simulate
 * **Backend:** Python (FastAPI), SciPy (SLSQP Optimizer), NumPy, Pandas
 * **Frontend:** Next.js, React, Tailwind CSS (v4), Shadcn UI, Recharts
 * **AI Integration:** Google Gemini API (NLP Sentiment & Generative Insights)
+<<<<<<< HEAD
 * **Design:** v0.dev, Figma
+=======
+* **Design:** v0.dev
+>>>>>>> 74841c0c67f31cc4d2a430839d2128d582af275f
 
 ---
 
@@ -52,10 +56,18 @@ pip install fastapi uvicorn scipy numpy pandas pydantic google-generativeai
 
 # Start the Uvicorn server
 python -m uvicorn main:app --reload
+<<<<<<< HEAD
+=======
+```
+>>>>>>> 74841c0c67f31cc4d2a430839d2128d582af275f
 
 ### 2. Start the Frontend (Next.js UI)
 Open your second terminal and navigate to the frontend folder:
 
+<<<<<<< HEAD
+=======
+```bash
+>>>>>>> 74841c0c67f31cc4d2a430839d2128d582af275f
 cd frontend
 
 # Install the Next.js dependencies
@@ -63,5 +75,9 @@ npm install
 
 # Start the development server
 npm run dev
+<<<<<<< HEAD
+=======
+```
+>>>>>>> 74841c0c67f31cc4d2a430839d2128d582af275f
 
 The Myney dashboard will be live at http://localhost:3000.
