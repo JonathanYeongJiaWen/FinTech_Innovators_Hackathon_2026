@@ -1214,17 +1214,27 @@ class PortfolioSummary(BaseModel):
     asset_class_2_pct: float
 
 
+class ActiveScenario(BaseModel):
+    label: str
+    type: str          # "Goal" or "Shock"
+    status: str         # "At Risk" or "Healthy"
+    shortfall: float
+    liquid_allocated: float
+
+
 class ClientSummary(BaseModel):
     client_id: str
     name: str
     net_worth: float
     wellness_score: float
     portfolio_summary: PortfolioSummary
+    active_scenarios: list[ActiveScenario]
 
 
 class InsightRequest(BaseModel):
     portfolio_summary: PortfolioSummary
     wellness_score: float
+    active_scenarios: list[ActiveScenario] = []
 
 
 class InsightResponse(BaseModel):
@@ -1244,6 +1254,10 @@ MOCK_CLIENTS: list[dict] = [
             "asset_class_2": "Fixed_Income",
             "asset_class_2_pct": 30.0,
         },
+        "active_scenarios": [
+            {"label": "Buying Condo (Private)", "type": "Goal", "status": "Healthy", "shortfall": 0, "liquid_allocated": 350_000},
+            {"label": "Job Loss", "type": "Shock", "status": "Healthy", "shortfall": 0, "liquid_allocated": 120_000},
+        ],
     },
     {
         "client_id": "CLI-002",
@@ -1256,6 +1270,10 @@ MOCK_CLIENTS: list[dict] = [
             "asset_class_2": "Digital_Assets",
             "asset_class_2_pct": 14.0,
         },
+        "active_scenarios": [
+            {"label": "Buying Property (HDB)", "type": "Goal", "status": "At Risk", "shortfall": 20_000, "liquid_allocated": 80_000},
+            {"label": "Job Loss", "type": "Shock", "status": "Healthy", "shortfall": 0, "liquid_allocated": 50_000},
+        ],
     },
     {
         "client_id": "CLI-003",
@@ -1268,6 +1286,9 @@ MOCK_CLIENTS: list[dict] = [
             "asset_class_2": "Fixed_Income",
             "asset_class_2_pct": 35.0,
         },
+        "active_scenarios": [
+            {"label": "Children's Education Fund", "type": "Goal", "status": "Healthy", "shortfall": 0, "liquid_allocated": 200_000},
+        ],
     },
     {
         "client_id": "CLI-004",
@@ -1280,6 +1301,10 @@ MOCK_CLIENTS: list[dict] = [
             "asset_class_2": "Private_Equity",
             "asset_class_2_pct": 25.0,
         },
+        "active_scenarios": [
+            {"label": "Medical Emergency", "type": "Shock", "status": "At Risk", "shortfall": 15_000, "liquid_allocated": 35_000},
+            {"label": "Buying Property (HDB)", "type": "Goal", "status": "Healthy", "shortfall": 0, "liquid_allocated": 110_000},
+        ],
     },
 ]
 
@@ -1306,6 +1331,21 @@ async def generate_advisor_insight(request: InsightRequest) -> InsightResponse:
     Sends client portfolio data to Google Gemini and returns a structured
     risk insight with a concrete rebalancing recommendation.
     """
+    # Build scenario context for the prompt
+    at_risk_scenarios = [s for s in request.active_scenarios if s.status == "At Risk"]
+    scenario_text = ""
+    if at_risk_scenarios:
+        scenario_lines = []
+        for s in at_risk_scenarios:
+            scenario_lines.append(
+                f"  - '{s.label}' ({s.type}): shortfall ${s.shortfall:,.0f}, "
+                f"liquid allocated ${s.liquid_allocated:,.0f}"
+            )
+        scenario_text = (
+            "\n\nThe client has the following 'At Risk' scenarios:\n"
+            + "\n".join(scenario_lines)
+        )
+
     prompt = (
         "You are an elite quantitative wealth advisor. "
         "A client has the following portfolio breakdown:\n"
@@ -1314,10 +1354,16 @@ async def generate_advisor_insight(request: InsightRequest) -> InsightResponse:
         f"- {request.portfolio_summary.asset_class_2}: "
         f"{request.portfolio_summary.asset_class_2_pct}%\n"
         f"- Remaining: other asset classes\n"
-        f"- Current Wellness Score: {request.wellness_score}/100\n\n"
-        "Based on this data, identify the single biggest vulnerability in "
-        "this portfolio and suggest a concrete, mathematical rebalancing "
-        "move.\n\n"
+        f"- Current Wellness Score: {request.wellness_score}/100"
+        f"{scenario_text}\n\n"
+        "Analyze the client's portfolio against their 'At Risk' scenarios. "
+        "Generate a recommended_action specifically designed to fix the exact "
+        "shortfall using their current liquid assets and portfolio weighting. "
+        "For example: 'To fund the $20k HDB property shortfall, recommend "
+        "shifting 10%% of their over-weighted Tech Equities into a high-yield "
+        "liquid cash account.' "
+        "If there are no at-risk scenarios, focus on the single biggest "
+        "vulnerability and suggest a concrete rebalancing move.\n\n"
         "You MUST respond with ONLY a valid JSON object with exactly two "
         "string fields:\n"
         '  "primary_risk": a concise description of the biggest risk,\n'

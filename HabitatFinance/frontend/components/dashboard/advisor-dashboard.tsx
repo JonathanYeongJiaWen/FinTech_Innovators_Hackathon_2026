@@ -22,7 +22,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AlertTriangle, CheckCircle2, Sparkles, Users } from "lucide-react"
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Sparkles,
+  Users,
+  ShieldAlert,
+} from "lucide-react"
 
 interface PortfolioSummary {
   asset_class_1: string
@@ -31,12 +37,21 @@ interface PortfolioSummary {
   asset_class_2_pct: number
 }
 
+interface ActiveScenario {
+  label: string
+  type: string
+  status: string
+  shortfall: number
+  liquid_allocated: number
+}
+
 interface Client {
   client_id: string
   name: string
   net_worth: number
   wellness_score: number
   portfolio_summary: PortfolioSummary
+  active_scenarios: ActiveScenario[]
 }
 
 interface Insight {
@@ -83,6 +98,7 @@ export function AdvisorDashboard() {
         body: JSON.stringify({
           portfolio_summary: client.portfolio_summary,
           wellness_score: client.wellness_score,
+          active_scenarios: client.active_scenarios,
         }),
       })
       if (!res.ok) throw new Error("Insight generation failed")
@@ -218,6 +234,80 @@ export function AdvisorDashboard() {
                   {selectedClient.wellness_score}/100
                 </span>
               </div>
+
+              {/* Client Goals & Vulnerabilities */}
+              {selectedClient.active_scenarios?.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-3">
+                    <ShieldAlert className="size-4 text-blue-500" />
+                    Client Goals &amp; Vulnerabilities
+                  </h3>
+                  <div className="space-y-2">
+                    {selectedClient.active_scenarios.map((scenario, idx) => {
+                      const isAtRisk = scenario.status === "At Risk"
+                      return (
+                        <div
+                          key={idx}
+                          className={`rounded-lg border p-3 ${
+                            isAtRisk
+                              ? "border-rose-500/50 bg-rose-500/5"
+                              : "border-emerald-500/50 bg-emerald-500/5"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {isAtRisk ? (
+                                <AlertTriangle className="size-4 text-rose-500 shrink-0" />
+                              ) : (
+                                <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                              )}
+                              <span className="text-sm font-medium">
+                                {scenario.label}
+                              </span>
+                            </div>
+                            <Badge
+                              variant={isAtRisk ? "destructive" : "outline"}
+                              className={`text-[10px] px-1.5 py-0 ${
+                                !isAtRisk
+                                  ? "border-emerald-500/50 text-emerald-500"
+                                  : ""
+                              }`}
+                            >
+                              {scenario.status}
+                            </Badge>
+                          </div>
+                          <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                            <div>
+                              <span className="block font-medium text-foreground">
+                                {scenario.type}
+                              </span>
+                              Type
+                            </div>
+                            <div>
+                              <span
+                                className={`block font-medium ${
+                                  scenario.shortfall > 0
+                                    ? "text-rose-500"
+                                    : "text-foreground"
+                                }`}
+                              >
+                                ${scenario.shortfall.toLocaleString()}
+                              </span>
+                              Shortfall
+                            </div>
+                            <div>
+                              <span className="block font-medium text-foreground">
+                                ${scenario.liquid_allocated.toLocaleString()}
+                              </span>
+                              Liquid Alloc.
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* AI Insight Section */}
               <div className="mt-8">
