@@ -54,12 +54,27 @@ class LiquidityProfile(BaseModel):
     liquidityWarningFlag: bool
 
 
+class BehavioralResilienceResponse(BaseModel):
+    stabilityRatio: float
+    panicRisk: str
+    description: str
+
+
+class SynergyResponse(BaseModel):
+    correlationCoefficient: float
+    equitiesWeight: float
+    digitalAssetsWeight: float
+    interpretation: str
+
+
 class WellnessResponse(BaseModel):
     portfolioId: str
     totalNetWorthUSD: float
     wellnessScore: float
     riskMetrics: RiskMetrics
     liquidityProfile: LiquidityProfile
+    behavioralResilience: BehavioralResilienceResponse
+    digitalTraditionalSynergy: SynergyResponse
 
 
 # ---------------------------------------------------------------------------
@@ -93,6 +108,161 @@ class ScenarioResponse(BaseModel):
 # Endpoint
 # ---------------------------------------------------------------------------
 
+
+# ---------------------------------------------------------------------------
+# Helper Functions for Advanced Metrics
+# ---------------------------------------------------------------------------
+
+def calculate_behavioral_resilience(data: dict) -> BehavioralResilienceResponse:
+    """
+    Calculate Behavioral Resilience Index (Stability Ratio).
+    
+    Formula: Compares user's trade volume against market volatility.
+    If market dropped >3% but user held position, ratio should be >0.80.
+    
+    Stability Ratio = 1.0 - (panic_factor * volatility_factor)
+    """
+    market_data = data.get("marketData", {})
+    trade_history = data.get("tradeHistory", {})
+    
+    # Get market volatility (use tech index as it's more relevant for typical portfolio)
+    tech_volatility = market_data.get("techIndexVolatility30d", 0.20)
+    tech_return = market_data.get("techIndexReturn30d", 0.0)
+    
+    # Get trade behavior
+    total_trades = trade_history.get("totalTradesLast30d", 0)
+    panic_sells = trade_history.get("panicSellsLast30d", 0)
+    held_during_drop = trade_history.get("heldDuringDrop", True)
+    largest_drawdown = abs(trade_history.get("largestDrawdownWithoutSell", 0.0))
+    
+    # Calculate panic factor (0.0 = no panic, 1.0 = high panic)
+    if total_trades == 0:
+        panic_factor = 0.0  # No trades = good discipline
+    else:
+        panic_factor = panic_sells / total_trades
+    
+    # If market dropped >3% and user held position, boost stability
+    market_stress_bonus = 0.0
+    if tech_return < -0.03 and held_during_drop:
+        market_stress_bonus = 0.15
+    
+    # Calculate stability ratio
+    volatility_factor = min(tech_volatility, 0.5)  # Cap at 0.5
+    stability_ratio = 1.0 - (panic_factor * volatility_factor) + market_stress_bonus
+    
+    # Clamp to [0.0, 1.0]
+    stability_ratio = max(0.0, min(1.0, stability_ratio))
+    
+    # Determine panic risk level
+    if stability_ratio >= 0.80:
+        panic_risk = "Low"
+        description = f"You haven't made any emotional trades during the recent {abs(tech_return)*100:.1f}% tech dip. Resilience is improving your Wellness Score."
+    elif stability_ratio >= 0.60:
+        panic_risk = "Medium"
+        description = "Your trading behavior shows moderate emotional discipline. Consider reviewing your investment strategy during market volatility."
+    else:
+        panic_risk = "High"
+        description = "Trading patterns suggest emotional responses to market movements. Consider implementing automatic rebalancing strategies."
+    
+    return BehavioralResilienceResponse(
+        stabilityRatio=round(stability_ratio, 2),
+        panicRisk=panic_risk,
+        description=description
+    )
+
+
+def calculate_digital_traditional_synergy(df: pd.DataFrame, data: dict) -> SynergyResponse:
+    """
+    Calculate Pearson Correlation between Equities and Digital Assets.
+    
+    Uses daily returns to compute correlation coefficient (r).
+    """
+    daily_returns = data.get("dailyReturns", {})
+    equities_returns = daily_returns.get("equities", [])
+    digital_returns = daily_returns.get("digitalAssets", [])
+    
+    # Calculate Pearson correlation if both arrays exist and have same length
+    if len(equities_returns) > 0 and len(digital_returns) > 0 and len(equities_returns) == len(digital_returns):
+        correlation_matrix = np.corrcoef(equities_returns, digital_returns)
+        correlation = float(correlation_matrix[0, 1])
+    else:
+        correlation = 0.0
+    
+    # Calculate weights
+    total_value = df["currentValueUSD"].sum()
+    equities_value = df[df["assetClass"] == "Equities"]["currentValueUSD"].sum()
+    digital_value = df[df["assetClass"] == "Digital_Assets"]["currentValueUSD"].sum()
+    
+    equities_weight = float(equities_value / total_value) if total_value > 0 else 0.0
+    digital_weight = float(digital_value / total_value) if total_value > 0 else 0.0
+    
+    # Interpret correlation
+    if abs(correlation) < 0.3:
+        interpretation = "Diversified"
+    elif correlation > 0.7:
+        interpretation = "Highly Correlated"
+    elif correlation < -0.7:
+        interpretation = "Inversely Correlated"
+    else:
+        interpretation = "Moderately Correlated"
+    
+    return SynergyResponse(
+        correlationCoefficient=round(correlation, 2),
+        equitiesWeight=round(equities_weight, 2),
+        digitalAssetsWeight=round(digital_weight, 2),
+        interpretation=interpretation
+    )
+
+
+def calculate_diversification_score(df: pd.DataFrame) -> float:
+    """
+    Calculate diversification score based on asset class distribution.
+    Uses Herfindahl-Hirschman Index (HHI) inverse.
+    
+    Returns: Score from 0.0 to 1.0 (higher = more diversified)
+    """
+    total = df["currentValueUSD"].sum()
+    if total == 0:
+        return 0.0
+    
+    class_weights = df.groupby("assetClass")["currentValueUSD"].sum() / total
+    hhi = (class_weights ** 2).sum()
+    
+    # Convert HHI to diversification score (1.0 = perfectly diversified, 0.0 = concentrated)
+    # HHI ranges from 1/n to 1.0, where n is number of asset classes
+    n_classes = len(class_weights)
+    if n_classes <= 1:
+        return 0.0
+    
+    min_hhi = 1.0 / n_classes
+    diversification_score = (1.0 - hhi) / (1.0 - min_hhi)
+    
+    return max(0.0, min(1.0, diversification_score))
+
+
+def calculate_liquidity_score(df: pd.DataFrame) -> float:
+    """
+    Calculate liquidity score based on the proportion of high-liquidity assets.
+    
+    Returns: Score from 0.0 to 1.0 (higher = more liquid)
+    """
+    total = df["currentValueUSD"].sum()
+    if total == 0:
+        return 0.0
+    
+    high_liquidity_value = df[df["liquidityTier"] == "High"]["currentValueUSD"].sum()
+    liquidity_ratio = high_liquidity_value / total
+    
+    # Score: >75% high liquidity = 1.0, <25% = 0.0
+    liquidity_score = max(0.0, min(1.0, (liquidity_ratio - 0.25) / 0.50 + 0.5))
+    
+    return liquidity_score
+
+
+# ---------------------------------------------------------------------------
+# Endpoint
+# ---------------------------------------------------------------------------
+
 @app.get(
     "/api/v1/wellness", 
     response_model=WellnessResponse, 
@@ -103,7 +273,13 @@ def get_financial_wellness() -> WellnessResponse:
     Financial Wellness Engine.
 
     Loads portfolio data, computes the Sharpe Ratio, maps it to a 0-100
-    wellness score, and returns a full liquidity breakdown.
+    wellness score using weighted average of:
+    - 30% Diversification
+    - 30% Liquidity
+    - 20% Sharpe Ratio
+    - 20% Behavioral Resilience
+    
+    Returns full liquidity breakdown, behavioral resilience, and synergy metrics.
     """
     # --- Load data ----------------------------------------------------------
     try:
@@ -143,6 +319,13 @@ def get_financial_wellness() -> WellnessResponse:
             liquidityProfile=LiquidityProfile(
                 highLiquidityUSD=0.0, lowLiquidityUSD=0.0, liquidityWarningFlag=False
             ),
+            behavioralResilience=BehavioralResilienceResponse(
+                stabilityRatio=0.0, panicRisk="Unknown", description="No data available"
+            ),
+            digitalTraditionalSynergy=SynergyResponse(
+                correlationCoefficient=0.0, equitiesWeight=0.0, 
+                digitalAssetsWeight=0.0, interpretation="No data"
+            ),
         )
 
     df["weight"] = df["currentValueUSD"] / total_value
@@ -165,10 +348,32 @@ def get_financial_wellness() -> WellnessResponse:
     else:
         sharpe_ratio = float((portfolio_return - RISK_FREE_RATE) / portfolio_volatility)
 
-    # Wellness Score: linear map Sharpe [0, SHARPE_MAX] → [0, 100], clamped.
+    # --- Calculate Component Scores for Unified Wellness --------------------
+    # Normalize Sharpe to 0-1 scale
+    sharpe_score = max(0.0, min(1.0, sharpe_ratio / SHARPE_MAX))
+    
+    # Diversification score (0-1)
+    diversification_score = calculate_diversification_score(df)
+    
+    # Liquidity score (0-1)
+    liquidity_score = calculate_liquidity_score(df)
+    
+    # Behavioral resilience score (0-1)
+    behavioral_resilience = calculate_behavioral_resilience(data)
+    resilience_score = behavioral_resilience.stabilityRatio
+    
+    # Unified Wellness Score: weighted average (0-100)
+    # 30% Diversification, 30% Liquidity, 20% Sharpe Ratio, 20% Behavioral Resilience
     wellness_score: float = round(
-        min(max(sharpe_ratio / SHARPE_MAX * 100.0, 0.0), 100.0), 1
+        (0.30 * diversification_score + 
+         0.30 * liquidity_score + 
+         0.20 * sharpe_score + 
+         0.20 * resilience_score) * 100.0,
+        1
     )
+
+    # --- Calculate Digital-Traditional Synergy ------------------------------
+    synergy = calculate_digital_traditional_synergy(df, data)
 
     # --- Liquidity Profiling ------------------------------------------------
     liquidity_by_tier = df.groupby("liquidityTier")["currentValueUSD"].sum()
@@ -191,6 +396,8 @@ def get_financial_wellness() -> WellnessResponse:
             lowLiquidityUSD=round(float(low_liquidity_usd), 2),
             liquidityWarningFlag=bool(liquidity_warning),
         ),
+        behavioralResilience=behavioral_resilience,
+        digitalTraditionalSynergy=synergy,
     )
 
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { 
@@ -15,9 +16,23 @@ const trendData = [
 ]
 
 export function FinancialPulse() {
+  const router = useRouter()
   const [netWorth, setNetWorth] = useState(0)
   const [wellnessScore, setWellnessScore] = useState(0)
   const [isPulseLoading, setIsPulseLoading] = useState(true)
+  
+  // New state for dynamic metrics
+  const [behavioralResilience, setBehavioralResilience] = useState({
+    stabilityRatio: 0,
+    panicRisk: "Low",
+    description: ""
+  })
+  const [synergy, setSynergy] = useState({
+    correlationCoefficient: 0,
+    equitiesWeight: 0,
+    digitalAssetsWeight: 0,
+    interpretation: "Diversified"
+  })
 
   const circumference = 2 * Math.PI * 70
 
@@ -29,6 +44,16 @@ export function FinancialPulse() {
         const data = await res.json()
         setNetWorth(data.totalNetWorthUSD)
         setWellnessScore(data.wellnessScore)
+        
+        // Set behavioral resilience data
+        if (data.behavioralResilience) {
+          setBehavioralResilience(data.behavioralResilience)
+        }
+        
+        // Set synergy data
+        if (data.digitalTraditionalSynergy) {
+          setSynergy(data.digitalTraditionalSynergy)
+        }
       } catch {
         console.error("Backend offline")
       } finally {
@@ -107,25 +132,30 @@ export function FinancialPulse() {
           <CardContent className="space-y-6">
             <div className="flex justify-between items-end">
               <div>
-                <p className="text-2xl font-bold">High</p>
+                <p className="text-2xl font-bold">{behavioralResilience.panicRisk}</p>
                 <p className="text-[10px] text-muted-foreground uppercase font-bold">Market Discipline</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-medium text-[#108548]">0.84</p>
+                <p className="text-sm font-medium text-[#108548]">{behavioralResilience.stabilityRatio.toFixed(2)}</p>
                 <p className="text-[10px] text-muted-foreground">Stability Ratio</p>
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-[10px] font-bold uppercase">
                 <span>Panic Risk</span>
-                <span className="text-[#108548]">Low</span>
+                <span className="text-[#108548]">{behavioralResilience.panicRisk}</span>
               </div>
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-[#108548] w-[20%]" />
+                <div 
+                  className="h-full bg-[#108548]" 
+                  style={{ 
+                    width: `${behavioralResilience.panicRisk === "Low" ? 20 : behavioralResilience.panicRisk === "Medium" ? 50 : 80}%` 
+                  }} 
+                />
               </div>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              You haven't made any emotional trades during the recent 5% tech dip. Resilience is improving your Wellness Score.
+              {behavioralResilience.description}
             </p>
           </CardContent>
         </Card>
@@ -146,14 +176,14 @@ export function FinancialPulse() {
               title="Volatility Alert"
               desc="Tech sector concentration is high (42%). Test your portfolio against a sector crash."
               actionLabel="Run Stress Test"
-              href="/dashboard/macro-stress-tester"
+              onClick={() => router.push("/stresstest")}
             />
             <InsightAction 
               icon={<Shield className="size-5 text-blue-500" />}
               title="Liquidity Buffer"
               desc="Current high-liquidity assets provide a $340k buffer. Review allocation strategy."
               actionLabel="View Analytics"
-              href="/dashboard/wealth-analytics"
+              onClick={() => router.push("/analytics")}
             />
           </CardContent>
         </Card>
@@ -168,19 +198,27 @@ export function FinancialPulse() {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground uppercase font-bold">Correlation ($r$)</p>
-                  <p className="text-3xl font-bold">+0.12</p>
+                  <p className="text-3xl font-bold">{synergy.correlationCoefficient >= 0 ? '+' : ''}{synergy.correlationCoefficient.toFixed(2)}</p>
                 </div>
                 <div className="px-3 py-1 bg-[#108548]/10 text-[#108548] rounded-md text-[10px] font-bold uppercase">
-                  Diversified
+                  {synergy.interpretation}
                 </div>
               </div>
               <div className="relative h-4 bg-muted rounded-full flex overflow-hidden">
-                <div className="h-full bg-blue-500 w-[70%]" title="Traditional" />
-                <div className="h-full bg-[#108548] w-[30%]" title="Digital" />
+                <div 
+                  className="h-full bg-blue-500" 
+                  style={{ width: `${synergy.equitiesWeight * 100}%` }} 
+                  title="Traditional" 
+                />
+                <div 
+                  className="h-full bg-[#108548]" 
+                  style={{ width: `${synergy.digitalAssetsWeight * 100}%` }} 
+                  title="Digital" 
+                />
               </div>
               <div className="flex justify-between text-[10px] text-muted-foreground font-bold uppercase">
-                <span>70% Traditional</span>
-                <span>30% Digital</span>
+                <span>{(synergy.equitiesWeight * 100).toFixed(0)}% Traditional</span>
+                <span>{(synergy.digitalAssetsWeight * 100).toFixed(0)}% Digital</span>
               </div>
             </div>
           </CardContent>
@@ -190,7 +228,13 @@ export function FinancialPulse() {
   )
 }
 
-function InsightAction({ icon, title, desc, actionLabel, href }: { icon: any, title: string, desc: string, actionLabel: string, href: string }) {
+function InsightAction({ icon, title, desc, actionLabel, onClick }: { 
+  icon: any
+  title: string
+  desc: string
+  actionLabel: string
+  onClick?: () => void
+}) {
   return (
     <div className="group p-4 rounded-xl border border-border bg-muted/20 hover:bg-muted/40 transition-all">
       <div className="flex gap-4">
@@ -198,7 +242,12 @@ function InsightAction({ icon, title, desc, actionLabel, href }: { icon: any, ti
         <div className="flex-1">
           <h4 className="font-semibold text-sm mb-1">{title}</h4>
           <p className="text-xs text-muted-foreground leading-relaxed mb-3">{desc}</p>
-          <Button variant="outline" size="sm" className="h-7 text-[10px] font-bold uppercase tracking-wider gap-2 group-hover:border-[#108548] group-hover:text-[#108548]">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-7 text-[10px] font-bold uppercase tracking-wider gap-2 group-hover:border-[#108548] group-hover:text-[#108548]"
+            onClick={onClick}
+          >
             {actionLabel} <ArrowRight className="size-3" />
           </Button>
         </div>
