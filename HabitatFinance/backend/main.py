@@ -5,7 +5,9 @@ import json
 import os
 from functools import lru_cache
 from pathlib import Path
-
+from dataclasses import dataclass
+from typing import Optional
+from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
@@ -103,6 +105,232 @@ class ScenarioResponse(BaseModel):
     projectedWellnessScore: float
     aiAnalysis: str
 
+# ---------------------------------------------------------------------------
+# Wallet Entity + Adapters + Services
+# ---------------------------------------------------------------------------
+
+@dataclass
+class WealthWalletItem:
+    source: str
+    asset_id: str
+    asset_name: str
+    asset_class: str
+    quantity: float
+    current_market_value_usd: float
+    liquidity_tier: str
+    historical_volatility: Optional[float]
+    currency: str
+
+
+class BaseAdapter(ABC):
+    @abstractmethod
+    def fetch_assets(self, user_id: str):
+        pass
+
+
+class TradFiAdapter(BaseAdapter):
+    def fetch_assets(self, user_id: str):
+        return [
+            {
+                "type": "bank",
+                "account_id": "bank-001",
+                "name": "DBS Savings",
+                "balance": 12000.50,
+                "currency": "USD"
+            },
+            {
+                "type": "stock",
+                "ticker": "AAPL",
+                "name": "Apple Inc",
+                "units": 10,
+                "price_per_unit": 190.0,
+                "currency": "USD"
+            }
+        ]
+
+
+class Web3Adapter(BaseAdapter):
+    def fetch_assets(self, user_id: str):
+        return [
+            {
+                "token_address": "0x123",
+                "symbol": "USDC",
+                "name": "USD Coin",
+                "balance": 5000,
+                "usd_price": 1.0,
+                "chain": "Ethereum"
+            }
+        ]
+
+
+class PrivateAssetAdapter(BaseAdapter):
+    def fetch_assets(self, user_id: str):
+        return [
+            {
+                "asset_ref": "prop-001",
+                "name": "Condo Unit",
+                "category": "real_estate",
+                "estimated_value_usd": 800000,
+                "ownership_fraction": 1.0
+            }
+        ]
+
+
+class NormalizationService:
+    def normalize_tradfi(self, raw):
+        items = []
+
+        for asset in raw:
+            if asset["type"] == "bank":
+                items.append(
+                    WealthWalletItem(
+                        source="TradFi",
+                        asset_id=asset["account_id"],
+                        asset_name=asset["name"],
+                        asset_class="Cash",
+                        quantity=1,
+                        current_market_value_usd=asset["balance"],
+                        liquidity_tier="High",
+                        historical_volatility=0.0,
+                        currency=asset["currency"]
+                    )
+                )
+
+            elif asset["type"] == "stock":
+                total_value = asset["units"] * asset["price_per_unit"]
+                items.append(
+                    WealthWalletItem(
+                        source="TradFi",
+                        asset_id=asset["ticker"],
+                        asset_name=asset["name"],
+                        asset_class="Equities",
+                        quantity=asset["units"],
+                        current_market_value_usd=total_value,
+                        liquidity_tier="High",
+                        historical_volatility=0.25,
+                        currency=asset["currency"]
+                    )
+                )
+
+        return items
+
+    def normalize_web3(self, raw):
+        items = []
+
+        for asset in raw:
+            items.append(
+                WealthWalletItem(
+                    source="Web3",
+                    asset_id=asset["token_address"],
+                    asset_name=asset["name"],
+                    asset_class="Digital_Assets",
+                    quantity=asset["balance"],
+                    current_market_value_usd=asset["balance"] * asset["usd_price"],
+                    liquidity_tier="Medium",
+                    historical_volatility=0.45,
+                    currency="USD"
+                )
+            )
+
+        return items
+
+    def normalize_private(self, raw):
+        items = []
+
+        for asset in raw:
+            items.append(
+                WealthWalletItem(
+                    source="PrivateAsset",
+                    asset_id=asset["asset_ref"],
+                    asset_name=asset["name"],
+                    asset_class="Private_Equity",
+                    quantity=asset["ownership_fraction"],
+                    current_market_value_usd=asset["estimated_value_usd"] * asset["ownership_fraction"],
+                    liquidity_tier="Low",
+                    historical_volatility=0.30,
+                    currency="USD"
+                )
+            )
+
+        return items
+
+class IngestionService:
+    def __init__(self):
+        self.tradfi_adapter = TradFiAdapter()
+        self.web3_adapter = Web3Adapter()
+        self.private_asset_adapter = PrivateAssetAdapter()
+
+    def fetch_all_sources(self, user_id: str):
+        return {
+            "tradfi": self.tradfi_adapter.fetch_assets(user_id),
+            "web3": self.web3_adapter.fetch_assets(user_id),
+            "private": self.private_asset_adapter.fetch_assets(user_id)
+        }
+
+
+class WalletService:
+    def __init__(self):
+        self.ingestion_service = IngestionService()
+        self.normalization_service = NormalizationService()
+
+    def _infer_expected_return_and_beta(self, asset_class: str) -> tuple[float, float]:
+        if asset_class == "Cash":
+            return 0.02, 0.0
+        elif asset_class == "Equities":
+            return 0.10, 1.1
+        elif asset_class == "Digital_Assets":
+            return 0.14, 1.3
+        elif asset_class == "Private_Equity":
+            return 0.12, 0.8
+        else:
+            return 0.05, 1.0
+
+    def get_unified_wallet(self, user_id: str):
+        raw_data = self.ingestion_service.fetch_all_sources(user_id)
+
+        tradfi_items = self.normalization_service.normalize_tradfi(raw_data["tradfi"])
+        web3_items = self.normalization_service.normalize_web3(raw_data["web3"])
+        private_items = self.normalization_service.normalize_private(raw_data["private"])
+
+        all_items = tradfi_items + web3_items + private_items
+        total_value = sum(item.current_market_value_usd for item in all_items)
+
+        return {
+            "user_id": user_id,
+            "total_value_usd": total_value,
+            "items": [item.__dict__ for item in all_items]
+        }
+
+    def build_wellness_records(self, user_id: str) -> list[dict]:
+        raw_data = self.ingestion_service.fetch_all_sources(user_id)
+
+        tradfi_items = self.normalization_service.normalize_tradfi(raw_data["tradfi"])
+        web3_items = self.normalization_service.normalize_web3(raw_data["web3"])
+        private_items = self.normalization_service.normalize_private(raw_data["private"])
+
+        all_items = tradfi_items + web3_items + private_items
+
+        records = []
+        for item in all_items:
+            expected_return, beta = self._infer_expected_return_and_beta(item.asset_class)
+
+            records.append(
+                {
+                    "name": item.asset_name,
+                    "assetClass": item.asset_class,
+                    "sector": "Unknown", #might become a problem ltr
+                    "currentValueUSD": item.current_market_value_usd,
+                    "liquidityTier": item.liquidity_tier,
+                    "expectedReturn": expected_return,
+                    "historicalVolatility": item.historical_volatility or 0.0,
+                    "beta": beta,
+                }
+            )
+
+        return records
+
+
+wallet_service = WalletService()
 
 # ---------------------------------------------------------------------------
 # Endpoint
@@ -971,7 +1199,9 @@ def get_portfolio_assets() -> list[AssetResponse]:
         )
         for asset in data["assets"]
     ]
-
+@app.get("/wallet/{user_id}", tags=["Wallet"])
+def get_wallet(user_id: str):
+    return wallet_service.get_unified_wallet(user_id)
 
 # ---------------------------------------------------------------------------
 # Feature: Advisor View
