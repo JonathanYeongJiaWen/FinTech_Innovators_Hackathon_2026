@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { TrendingDown, Percent, RefreshCw, AlertTriangle, ArrowRight, Sparkles, Info } from "lucide-react"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { MilestoneSummary } from "@/components/dashboard/milestone-summary"
 
 type Scenario = "tech-crash" | "rate-hike"
 
@@ -83,6 +84,7 @@ export function MacroStressTester() {
 
   return (
     <div className="space-y-6">
+      <MilestoneSummary />
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Control Panel */}
         <Card className="bg-card border-border">

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { 
-  Sparkles, TrendingUp, BrainCircuit, Zap, Shield, 
+  Sparkles, TrendingUp, BrainCircuit, Zap, 
   Info, AlertTriangle, ArrowRight 
 } from "lucide-react"
 import { LineChart, Line, ResponsiveContainer } from "recharts"
@@ -215,13 +215,6 @@ export function FinancialPulse() {
               desc="Tech sector concentration is high (42%). Test your portfolio against a sector crash."
               actionLabel="Run Stress Test"
               onClick={() => router.push("/stresstest")}
-            />
-            <InsightAction 
-              icon={<Shield className="size-5 text-blue-500" />}
-              title="Liquidity Buffer"
-              desc="Current high-liquidity assets provide a $340k buffer. Review allocation strategy."
-              actionLabel="View Analytics"
-              onClick={() => router.push("/analytics")}
             />
           </CardContent>
         </Card>

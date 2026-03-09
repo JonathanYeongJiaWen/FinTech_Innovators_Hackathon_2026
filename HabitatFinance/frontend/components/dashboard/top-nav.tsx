@@ -61,6 +61,15 @@ export function TopNav({ viewMode, onViewModeChange }: TopNavProps) {
           </nav>
 
           <div className="flex items-center gap-6 min-w-fit">
+            {/* Client / Advisor Toggle */}
+            <div className="flex items-center gap-2 text-xs font-medium">
+              <span className={viewMode === "client" ? "text-foreground" : "text-muted-foreground"}>Client</span>
+              <Switch
+                checked={viewMode === "advisor"}
+                onCheckedChange={(checked) => onViewModeChange(checked ? "advisor" : "client")}
+              />
+              <span className={viewMode === "advisor" ? "text-foreground" : "text-muted-foreground"}>Advisor</span>
+            </div>
             <div className="flex items-center gap-3 border-l pl-6 border-border/40">
               <Button
                 variant="ghost" 

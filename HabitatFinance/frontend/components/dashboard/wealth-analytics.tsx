@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Treemap, ResponsiveContainer, Tooltip } from "recharts"
 import { PieChart, TableIcon, Sparkles, Loader2 } from "lucide-react"
+import { MilestoneSummary } from "@/components/dashboard/milestone-summary"
 
 // ---------------------------------------------------------------------------
 // Category colour palette - Cleaned and Updated
@@ -305,6 +306,7 @@ export function WealthAnalytics() {
 
   return (
     <div className="space-y-6">
+      <MilestoneSummary />
       <Card className="bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2">

@@ -402,6 +402,230 @@ def get_financial_wellness() -> WellnessResponse:
 
 
 # ---------------------------------------------------------------------------
+# Feature 2b: Milestone Liquidity Tracker
+# ---------------------------------------------------------------------------
+
+class MilestoneRequest(BaseModel):
+    target_amount: float
+    cpf_oa_balance: float
+    monthly_burn_rate: float
+
+
+class MilestoneTarget(BaseModel):
+    target_name: str
+    target_amount: float
+    target_date: str
+
+
+class FinancialSnapshot(BaseModel):
+    cpf_oa_balance: float
+    cash_reserves: float
+    liquid_investments: dict[str, float]
+    illiquid_investments: dict[str, float]
+    monthly_burn_rate: float
+
+
+class LiquidityAnalysis(BaseModel):
+    cash_shortfall: float
+    post_milestone_cash: float
+    runway_months: float
+    status: str
+    recommended_action: str | None
+
+
+class MilestoneLiquidityResponse(BaseModel):
+    milestone: MilestoneTarget
+    financial_snapshot: FinancialSnapshot
+    analysis: LiquidityAnalysis
+
+
+@app.post(
+    "/api/v1/wellness/milestone-liquidity",
+    response_model=MilestoneLiquidityResponse,
+    tags=["Feature 2: Financial Wellness Engine"],
+)
+def calculate_milestone_liquidity(request: MilestoneRequest) -> MilestoneLiquidityResponse:
+    """
+    Milestone Liquidity Tracker.
+
+    Accepts dynamic target_amount, cpf_oa_balance, and monthly_burn_rate
+    from the client, then evaluates whether the user has sufficient liquid
+    resources to fund an upcoming financial milestone without dangerously
+    depleting their cash runway.
+    """
+    # --- Milestone target (name & date still default) -----------------------
+    milestone = MilestoneTarget(
+        target_name="HDB Flat Downpayment",
+        target_amount=request.target_amount,
+        target_date="2026-11-01",
+    )
+
+    # --- Financial data (cash & investments remain mock-fixed) --------------
+    cash_reserves = 20_000.0
+    liquid_investments = {"Equities": 100_000.0, "Bonds": 50_000.0}
+    illiquid_investments = {"Private Equity": 200_000.0, "Crypto": 100_000.0}
+
+    snapshot = FinancialSnapshot(
+        cpf_oa_balance=request.cpf_oa_balance,
+        cash_reserves=cash_reserves,
+        liquid_investments=liquid_investments,
+        illiquid_investments=illiquid_investments,
+        monthly_burn_rate=request.monthly_burn_rate,
+    )
+
+    # --- Liquidity math -----------------------------------------------------
+    cash_shortfall = request.target_amount - request.cpf_oa_balance
+    post_milestone_cash = cash_reserves - cash_shortfall
+    runway_months = (
+        post_milestone_cash / request.monthly_burn_rate
+        if request.monthly_burn_rate > 0
+        else float("inf")
+    )
+
+    # --- Risk assessment ----------------------------------------------------
+    if runway_months < 6.0:
+        status = "High Liquidity Risk"
+        target_buffer = 6.0 * request.monthly_burn_rate
+        liquidation_needed = target_buffer - post_milestone_cash
+        top_liquid_source = max(liquid_investments, key=liquid_investments.get)
+        top_illiquid_source = max(illiquid_investments, key=illiquid_investments.get)
+        recommended_action = (
+            f"Liquidate ${liquidation_needed:,.0f} from {top_liquid_source} "
+            f"to secure a 6-month post-purchase cash buffer and prevent "
+            f"forced sales of illiquid {top_illiquid_source}."
+        )
+    else:
+        status = "Healthy"
+        recommended_action = None
+
+    analysis = LiquidityAnalysis(
+        cash_shortfall=round(cash_shortfall, 2),
+        post_milestone_cash=round(post_milestone_cash, 2),
+        runway_months=round(runway_months, 2),
+        status=status,
+        recommended_action=recommended_action,
+    )
+
+    return MilestoneLiquidityResponse(
+        milestone=milestone,
+        financial_snapshot=snapshot,
+        analysis=analysis,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Feature 2c: Multi-Scenario Planner
+# ---------------------------------------------------------------------------
+
+PROPERTY_LABELS = {"HDB", "Condo", "Property", "House", "Flat"}
+
+
+class ScenarioItem(BaseModel):
+    label: str
+    type: str  # "Goal" or "Shock"
+    target_amount: float
+    target_date: str | None = None
+
+
+class ScenariosRequest(BaseModel):
+    scenarios: list[ScenarioItem]
+    cpf_oa_balance: float = 45_000.0
+    cash_reserves: float = 20_000.0
+    monthly_burn_rate: float = 4_000.0
+
+
+class ScenarioResult(BaseModel):
+    label: str
+    type: str
+    status: str
+    impact_amount: float
+    target_amount: float
+    liquid_assets_available: float
+    recommendation: str
+
+
+class ScenariosResponse(BaseModel):
+    results: list[ScenarioResult]
+
+
+def _is_property_goal(label: str) -> bool:
+    return any(kw.lower() in label.lower() for kw in PROPERTY_LABELS)
+
+
+@app.post(
+    "/api/v1/wellness/scenarios",
+    response_model=ScenariosResponse,
+    tags=["Feature 2: Financial Wellness Engine"],
+)
+async def evaluate_scenarios(request: ScenariosRequest) -> ScenariosResponse:
+    """
+    Multi-Scenario Planner.
+
+    Accepts a list of life milestones and financial shocks, evaluates
+    the liquidity impact of each, and returns a Gemini-powered
+    recommendation per scenario.
+    """
+    results: list[ScenarioResult] = []
+
+    for scenario in request.scenarios:
+        # ----- Liquidity impact math ----------------------------------------
+        if scenario.type == "Shock":
+            # Emergency fund test: can cash_reserves absorb the shock?
+            liquid_assets_available = request.cash_reserves
+            impact_amount = liquid_assets_available - scenario.target_amount
+            status = "Healthy" if impact_amount >= 0 else "At Risk"
+        else:
+            # Goal: subtract CPF OA contribution for property-related goals
+            cpf_contribution = (
+                request.cpf_oa_balance if _is_property_goal(scenario.label) else 0.0
+            )
+            liquid_assets_available = cpf_contribution + request.cash_reserves
+            shortfall = scenario.target_amount - liquid_assets_available
+            impact_amount = -shortfall  # positive = surplus, negative = deficit
+            status = "Healthy" if shortfall <= 0 else "At Risk"
+
+        # ----- Gemini recommendation ----------------------------------------
+        prompt = (
+            "You are a licensed Singaporean financial planner. "
+            f"A client faces this scenario: '{scenario.label}' "
+            f"(type: {scenario.type}, amount: ${scenario.target_amount:,.0f}). "
+            f"Their current cash reserves are ${request.cash_reserves:,.0f}, "
+            f"CPF OA balance is ${request.cpf_oa_balance:,.0f}, "
+            f"and monthly burn rate is ${request.monthly_burn_rate:,.0f}. "
+            f"The computed impact is ${abs(impact_amount):,.0f} "
+            f"{'surplus' if impact_amount >= 0 else 'shortfall'}. "
+            "Analyze this scenario. If there is a shortfall, suggest a specific "
+            "monthly savings target or a reallocation move (e.g., 'Redirect "
+            "$500/mo to T-Bills'). If it is a shock like Job Loss, suggest the "
+            "optimal liquid buffer size. Reply in 2-3 sentences maximum."
+        )
+        try:
+            response = await client.aio.models.generate_content(
+                model="gemini-2.5-flash", contents=prompt
+            )
+            recommendation = response.text.strip()
+        except Exception:
+            recommendation = (
+                "Unable to generate AI recommendation at this time. "
+                "Please review your liquid reserves manually."
+            )
+
+        results.append(
+            ScenarioResult(
+                label=scenario.label,
+                type=scenario.type,
+                status=status,
+                impact_amount=round(impact_amount, 2),
+                target_amount=scenario.target_amount,
+                liquid_assets_available=round(liquid_assets_available, 2),
+                recommendation=recommendation,
+            )
+        )
+
+    return ScenariosResponse(results=results)
+
+
+# ---------------------------------------------------------------------------
 # Feature 4: Macro Stress-Tester
 # ---------------------------------------------------------------------------
 
@@ -747,3 +971,157 @@ def get_portfolio_assets() -> list[AssetResponse]:
         )
         for asset in data["assets"]
     ]
+
+
+# ---------------------------------------------------------------------------
+# Feature: Advisor View
+# ---------------------------------------------------------------------------
+
+class PortfolioSummary(BaseModel):
+    asset_class_1: str
+    asset_class_1_pct: float
+    asset_class_2: str
+    asset_class_2_pct: float
+
+
+class ClientSummary(BaseModel):
+    client_id: str
+    name: str
+    net_worth: float
+    wellness_score: float
+    portfolio_summary: PortfolioSummary
+
+
+class InsightRequest(BaseModel):
+    portfolio_summary: PortfolioSummary
+    wellness_score: float
+
+
+class InsightResponse(BaseModel):
+    primary_risk: str
+    recommended_action: str
+
+
+MOCK_CLIENTS: list[dict] = [
+    {
+        "client_id": "CLI-001",
+        "name": "Rachel Tan",
+        "net_worth": 2_450_000.00,
+        "wellness_score": 82.4,
+        "portfolio_summary": {
+            "asset_class_1": "Equities",
+            "asset_class_1_pct": 55.0,
+            "asset_class_2": "Fixed_Income",
+            "asset_class_2_pct": 30.0,
+        },
+    },
+    {
+        "client_id": "CLI-002",
+        "name": "David Ng",
+        "net_worth": 870_000.00,
+        "wellness_score": 38.7,
+        "portfolio_summary": {
+            "asset_class_1": "Equities",
+            "asset_class_1_pct": 82.0,
+            "asset_class_2": "Digital_Assets",
+            "asset_class_2_pct": 14.0,
+        },
+    },
+    {
+        "client_id": "CLI-003",
+        "name": "Aisha Binte Rahman",
+        "net_worth": 5_120_000.00,
+        "wellness_score": 74.1,
+        "portfolio_summary": {
+            "asset_class_1": "Real_Estate",
+            "asset_class_1_pct": 40.0,
+            "asset_class_2": "Fixed_Income",
+            "asset_class_2_pct": 35.0,
+        },
+    },
+    {
+        "client_id": "CLI-004",
+        "name": "Marcus Lee",
+        "net_worth": 1_680_000.00,
+        "wellness_score": 65.9,
+        "portfolio_summary": {
+            "asset_class_1": "Equities",
+            "asset_class_1_pct": 45.0,
+            "asset_class_2": "Private_Equity",
+            "asset_class_2_pct": 25.0,
+        },
+    },
+]
+
+
+@app.get(
+    "/api/v1/advisor/clients",
+    response_model=list[ClientSummary],
+    tags=["Advisor View"],
+)
+def get_advisor_clients() -> list[ClientSummary]:
+    """Return mock advisor book of 4 clients."""
+    return [ClientSummary(**c) for c in MOCK_CLIENTS]
+
+
+@app.post(
+    "/api/v1/advisor/generate-insight",
+    response_model=InsightResponse,
+    tags=["Advisor View"],
+)
+async def generate_advisor_insight(request: InsightRequest) -> InsightResponse:
+    """
+    Generative AI endpoint.
+
+    Sends client portfolio data to Google Gemini and returns a structured
+    risk insight with a concrete rebalancing recommendation.
+    """
+    prompt = (
+        "You are an elite quantitative wealth advisor. "
+        "A client has the following portfolio breakdown:\n"
+        f"- {request.portfolio_summary.asset_class_1}: "
+        f"{request.portfolio_summary.asset_class_1_pct}%\n"
+        f"- {request.portfolio_summary.asset_class_2}: "
+        f"{request.portfolio_summary.asset_class_2_pct}%\n"
+        f"- Remaining: other asset classes\n"
+        f"- Current Wellness Score: {request.wellness_score}/100\n\n"
+        "Based on this data, identify the single biggest vulnerability in "
+        "this portfolio and suggest a concrete, mathematical rebalancing "
+        "move.\n\n"
+        "You MUST respond with ONLY a valid JSON object with exactly two "
+        "string fields:\n"
+        '  "primary_risk": a concise description of the biggest risk,\n'
+        '  "recommended_action": a specific rebalancing instruction '
+        "referencing percentages and target instruments.\n\n"
+        "Do not include any text outside the JSON object."
+    )
+
+    response = await client.aio.models.generate_content(
+        model="gemini-2.5-flash", contents=prompt
+    )
+
+    raw = response.text.strip()
+    # Strip markdown code fences if Gemini wraps the JSON
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+        if raw.endswith("```"):
+            raw = raw[:-3].strip()
+
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=502,
+            detail="Gemini returned non-JSON response.",
+        )
+
+    if "primary_risk" not in parsed or "recommended_action" not in parsed:
+        raise HTTPException(
+            status_code=502,
+            detail="Gemini response missing required fields.",
+        )
+
+    return InsightResponse(
+        primary_risk=str(parsed["primary_risk"]),
+        recommended_action=str(parsed["recommended_action"]),
+    )
