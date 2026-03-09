@@ -500,7 +500,7 @@ export function WealthAnalytics() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <RiskSensitivityRadar assets={portfolioAssets} />
+          <RiskSensitivityRadar isOptimized={!!optimizedData} />
         </CardContent>
       </Card>
     </div>
