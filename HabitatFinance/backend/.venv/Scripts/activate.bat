@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=C:\Users\jonat\OneDrive\Documents\NTU\Hackathons\Fintech Innovator's Hackathon 2026\FinTech_Innovators_Hackathon_2026\HabitatFinance\backend\.venv
+set VIRTUAL_ENV=C:\Users\xinle\OneDrive - Nanyang Technological University\Hackathon\FinTech_Innovators_Hackathon_2026\HabitatFinance\backend\.venv
 
 if not defined PROMPT set PROMPT=$P$G
 

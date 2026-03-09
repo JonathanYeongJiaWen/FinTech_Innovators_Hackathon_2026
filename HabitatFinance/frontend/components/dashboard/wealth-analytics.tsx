@@ -14,15 +14,27 @@ import { Treemap, ResponsiveContainer, Tooltip } from "recharts"
 import { PieChart, TableIcon } from "lucide-react"
 
 // ---------------------------------------------------------------------------
-// Category colour palette (Calm Design aesthetic)
+// Category colour palette - Cleaned and Updated
 // ---------------------------------------------------------------------------
 const CATEGORY_COLORS: Record<string, { base: string; shades: string[] }> = {
-  Equities:     { base: "oklch(0.72 0.19 160)", shades: ["oklch(0.72 0.19 160)", "oklch(0.62 0.16 160)", "oklch(0.52 0.14 160)"] },
-  Fixed_Income: { base: "oklch(0.65 0.18 300)", shades: ["oklch(0.65 0.18 300)", "oklch(0.55 0.15 300)", "oklch(0.45 0.12 300)"] },
-  Private_Equity: { base: "oklch(0.75 0.15 80)", shades: ["oklch(0.75 0.15 80)", "oklch(0.65 0.12 80)", "oklch(0.55 0.10 80)"] },
-  Digital_Assets: { base: "oklch(0.70 0.14 200)", shades: ["oklch(0.70 0.14 200)", "oklch(0.60 0.12 200)", "oklch(0.50 0.10 200)"] },
+Equities: { 
+    base: "#4277c3", 
+    shades: ["#3d6ba6", "#2b4e72", "#5a8cc2", "#a7c6ed"] 
+  },
+  Fixed_Income: { 
+    base: "#eca1ac", 
+    shades: [ "#e27589", "#eca1ac", "#f9cdd4", "#b25b6e"] 
+  },
+  Private_Equity: { 
+    base: "#47894b", 
+    shades: ["#aad688", "#  #47894b", "  #47894b"] 
+  },
+  Digital_Assets: { 
+    base: "#739bd4", 
+    shades: ["#c0c5ce", "#65737e"] 
+  },
 }
-const FALLBACK_COLOR = "oklch(0.60 0.10 250)"
+const FALLBACK_COLOR = "#FFA500"
 
 function displayCategory(raw: string): string {
   return raw.replace(/_/g, " ")
@@ -102,7 +114,7 @@ interface TreemapContentProps {
 }
 
 const CustomTreemapContent = ({ x = 0, y = 0, width = 0, height = 0, name = "", fill = "" }: TreemapContentProps) => {
-  const showText = width > 60 && height > 40
+  const showText = width > 40 && height > 30
 
   return (
     <g>
@@ -113,39 +125,27 @@ const CustomTreemapContent = ({ x = 0, y = 0, width = 0, height = 0, name = "", 
         height={height}
         style={{
           fill,
-          stroke: "oklch(0.12 0.005 260)",
-          strokeWidth: 2,
+          stroke: "#fff",
+          strokeWidth: 1,
         }}
         rx={4}
       />
+      {/* Updated with foreignObject for Text Wrapping */}
       {showText && (
-        <text
-          x={x + width / 2}
-          y={y + height / 2}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="text-xs font-medium fill-foreground"
-          style={{ fill: "oklch(0.12 0.005 260)" }}
-        >
-          {name}
-        </text>
+        <foreignObject x={x} y={y} width={width} height={height}>
+          <div className="flex items-center justify-center h-full w-full p-2 overflow-hidden pointer-events-none">
+            <p className="text-[10px] font-bold text-white text-center leading-tight break-words"
+               style={{ textShadow: "0px 1px 2px rgba(0,0,0,0.6)" }}>
+              {name}
+            </p>
+          </div>
+        </foreignObject>
       )}
     </g>
   )
 }
 
-interface TooltipPayload {
-  name: string
-  size: number
-  category: string
-}
-
-interface TreemapTooltipProps {
-  active?: boolean
-  payload?: { payload: TooltipPayload }[]
-}
-
-const CustomTooltip = ({ active, payload }: TreemapTooltipProps) => {
+const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
@@ -161,6 +161,14 @@ const CustomTooltip = ({ active, payload }: TreemapTooltipProps) => {
   return null
 }
 
+const LegendItem = ({ color, label, value }: { color: string; label: string; value: string }) => (
+  <div className="flex items-center gap-2">
+    <div className="size-3 rounded-full" style={{ backgroundColor: color }} />
+    <span className="text-sm text-muted-foreground">{label}</span>
+    <span className="text-sm font-medium">{value}</span>
+  </div>
+)
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -172,17 +180,24 @@ export function WealthAnalytics() {
     const fetchAssets = async () => {
       try {
         const res = await fetch("http://127.0.0.1:8000/api/v1/assets")
-        if (!res.ok) throw new Error(`Request failed (${res.status})`)
+        if (!res.ok) throw new Error(`Request failed`)
         const data: BackendAsset[] = await res.json()
-        const total = data.reduce((s, a) => s + a.currentValueUSD, 0)
-        setPortfolioAssets(
-          data.map((a) => ({
-            ...a,
-            allocation: total > 0 ? Math.round((a.currentValueUSD / total) * 1000) / 10 : 0,
-          }))
-        )
-      } catch {
-        // keep empty state — UI will show "No data" gracefully
+        
+        const totalValue = data.reduce((s, a) => s + a.currentValueUSD, 0)
+        
+        // 1. Process and calculate allocation
+        let processed = data.map((a) => ({
+          ...a,
+          allocation: totalValue > 0 ? Math.round((a.currentValueUSD / totalValue) * 1000) / 10 : 0,
+        }))
+
+        // 2. STRICT DESCENDING SORT: (b.allocation - a.allocation)
+        // This ensures the 42.4% Private Equity appears at the top
+        processed.sort((a, b) => b.allocation - a.allocation)
+        
+        setPortfolioAssets(processed)
+      } catch (err) {
+        console.error(err)
       } finally {
         setIsAnalyticsLoading(false)
       }
@@ -204,11 +219,9 @@ export function WealthAnalytics() {
 
   const flatData = buildTreemapData(portfolioAssets)
   const legend = buildLegend(portfolioAssets)
-  const maxAllocation = Math.max(...portfolioAssets.map((a) => a.allocation), 1)
 
   return (
     <div className="space-y-6">
-      {/* Treemap Card */}
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2">
@@ -230,7 +243,6 @@ export function WealthAnalytics() {
               </Treemap>
             </ResponsiveContainer>
           </div>
-          {/* Legend */}
           <div className="flex flex-wrap gap-6 mt-6 justify-center">
             {legend.map((item) => (
               <LegendItem key={item.label} color={item.color} label={item.label} value={item.value} />
@@ -239,7 +251,6 @@ export function WealthAnalytics() {
         </CardContent>
       </Card>
 
-      {/* Assets Table */}
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2">
@@ -250,34 +261,41 @@ export function WealthAnalytics() {
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground">Asset Name</TableHead>
-                <TableHead className="text-muted-foreground">Category</TableHead>
-                <TableHead className="text-right text-muted-foreground">Value ($)</TableHead>
-                <TableHead className="text-right text-muted-foreground">Allocation (%)</TableHead>
+              <TableRow>
+                <TableHead>Asset Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead className="text-right">Value ($)</TableHead>
+                <TableHead className="text-right">Allocation (%)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {portfolioAssets.map((asset) => (
-                <TableRow key={asset.assetId} className="border-border">
-                  <TableCell className="font-medium text-foreground">{asset.name}</TableCell>
+                <TableRow key={asset.assetId}>
+                  <TableCell className="font-semibold">{asset.name}</TableCell>
                   <TableCell>
-                    <CategoryBadge category={displayCategory(asset.assetClass)} />
+                    <span 
+                      className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                      style={{ 
+                        backgroundColor: (CATEGORY_COLORS[asset.assetClass]?.base || FALLBACK_COLOR) + '20',
+                        color: CATEGORY_COLORS[asset.assetClass]?.base || FALLBACK_COLOR 
+                      }}
+                    >
+                      {displayCategory(asset.assetClass)}
+                    </span>
                   </TableCell>
-                  <TableCell className="text-right text-foreground font-medium">
-                    ${asset.currentValueUSD.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right font-medium">${asset.currentValueUSD.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-bold text-[#4277c3]">
                     <div className="flex items-center justify-end gap-2">
                       <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full"
-                          style={{ width: `${(asset.allocation / maxAllocation) * 100}%` }}
+                        <div 
+                          className="h-full rounded-full" 
+                          style={{ 
+                            width: `${asset.allocation}%`,
+                            backgroundColor: CATEGORY_COLORS[asset.assetClass]?.base || FALLBACK_COLOR
+                          }} 
                         />
                       </div>
-                      <span className="text-muted-foreground w-12 text-right">
-                        {asset.allocation}%
-                      </span>
+                      <span className="text-xs text-muted-foreground w-8">{asset.allocation}%</span>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -287,40 +305,5 @@ export function WealthAnalytics() {
         </CardContent>
       </Card>
     </div>
-  )
-}
-
-interface LegendItemProps {
-  color: string
-  label: string
-  value: string
-}
-
-function LegendItem({ color, label, value }: LegendItemProps) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="size-3 rounded-sm" style={{ backgroundColor: color }} />
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium text-foreground">{value}</span>
-    </div>
-  )
-}
-
-interface CategoryBadgeProps {
-  category: string
-}
-
-function CategoryBadge({ category }: CategoryBadgeProps) {
-  const colorMap: Record<string, string> = {
-    Equities: "bg-primary/20 text-primary border-primary/30",
-    "Fixed Income": "bg-accent/20 text-accent border-accent/30",
-    "Private Equity": "bg-chart-3/20 text-chart-3 border-chart-3/30",
-    "Digital Assets": "bg-chart-4/20 text-chart-4 border-chart-4/30",
-  }
-
-  return (
-    <span className={`px-2 py-0.5 rounded-md text-xs font-medium border ${colorMap[category] || "bg-muted text-muted-foreground"}`}>
-      {category}
-    </span>
   )
 }
