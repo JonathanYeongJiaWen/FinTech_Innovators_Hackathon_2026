@@ -61,17 +61,6 @@ export function TopNav({ viewMode, onViewModeChange }: TopNavProps) {
           </nav>
 
           <div className="flex items-center gap-6 min-w-fit">
-            {/* View Mode Toggle */}
-            <div className="flex items-center gap-3 bg-muted/40 rounded-full px-3 py-1.5 border border-border/50">
-              <span className={`text-[10px] uppercase tracking-wider font-bold ${viewMode === "client" ? "text-foreground" : "text-muted-foreground/60"}`}>Client</span>
-              <Switch
-                checked={viewMode === "advisor"}
-                onCheckedChange={(checked) => onViewModeChange(checked ? "advisor" : "client")}
-                className="scale-90"
-              />
-              <span className={`text-[10px] uppercase tracking-wider font-bold ${viewMode === "advisor" ? "text-foreground" : "text-muted-foreground/60"}`}>Advisor</span>
-            </div>
-
             <div className="flex items-center gap-3 border-l pl-6 border-border/40">
               <Button
                 variant="ghost" 
