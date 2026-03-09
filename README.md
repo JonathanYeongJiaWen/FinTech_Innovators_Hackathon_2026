@@ -52,10 +52,12 @@ pip install fastapi uvicorn scipy numpy pandas pydantic google-generativeai
 
 # Start the Uvicorn server
 python -m uvicorn main:app --reload
+```
 
 ### 2. Start the Frontend (Next.js UI)
 Open your second terminal and navigate to the frontend folder:
 
+```bash
 cd frontend
 
 # Install the Next.js dependencies
@@ -63,5 +65,6 @@ npm install
 
 # Start the development server
 npm run dev
+```
 
 The Myney dashboard will be live at http://localhost:3000.
