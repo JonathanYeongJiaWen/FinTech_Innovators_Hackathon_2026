@@ -17,7 +17,7 @@ Crucially, Myney features an AI-driven "Macro Stress-Tester." Users can simulate
 * **Backend:** Python (FastAPI), SciPy (SLSQP Optimizer), NumPy, Pandas
 * **Frontend:** Next.js, React, Tailwind CSS (v4), Shadcn UI, Recharts
 * **AI Integration:** Google Gemini API (NLP Sentiment & Generative Insights)
-* **Design:** v0.dev, Figma
+* **Design:** v0.dev
 
 ---
 
