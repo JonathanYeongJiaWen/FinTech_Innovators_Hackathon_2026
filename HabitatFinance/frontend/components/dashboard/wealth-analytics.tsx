@@ -15,9 +15,10 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Treemap, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts"
-import { PieChart, TableIcon, Sparkles, Loader2, Activity } from "lucide-react"
+import { PieChart, TableIcon, Sparkles, Loader2, Activity, Brain, ChevronDown } from "lucide-react"
 import { MilestoneSummary } from "@/components/dashboard/milestone-summary"
 import { RiskSensitivityRadar } from "@/components/dashboard/risk-sensitivity-radar"
+import { GlossaryTerm, renderWithGlossary } from "@/components/ui/glossary-term"
 
 // ---------------------------------------------------------------------------
 // Category colour palette - Cleaned and Updated
@@ -74,6 +75,7 @@ interface TradeRecommendation {
   currentWeight: number
   optimizedWeight: number
   action: string
+  rationale?: string
 }
 
 // Mock expected‐returns & volatilities per asset class (for building the request)
@@ -189,6 +191,78 @@ const LegendItem = ({ color, label, value }: { color: string; label: string; val
     <span className="text-sm font-medium">{value}</span>
   </div>
 )
+
+// ---------------------------------------------------------------------------
+// TradeCard sub-component
+// ---------------------------------------------------------------------------
+function TradeCard({
+  rec,
+  isBuy,
+  isSell,
+  isOptimizing,
+}: {
+  rec: TradeRecommendation
+  isBuy: boolean
+  isSell: boolean
+  isOptimizing: boolean
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="rounded-lg border border-border p-4 space-y-2">
+      <p className="font-semibold text-sm text-foreground truncate">{rec.asset}</p>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>Current {(rec.currentWeight * 100).toFixed(1)}%</span>
+        <span>→</span>
+        <span>Optimized {(rec.optimizedWeight * 100).toFixed(1)}%</span>
+      </div>
+      <p
+        className={`text-sm font-bold ${
+          isBuy ? "text-emerald-500" : isSell ? "text-rose-500" : "text-muted-foreground"
+        }`}
+      >
+        {rec.action}
+      </p>
+
+      {/* AI Insight toggle */}
+      <div className="pt-1">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
+        >
+          <Brain className="size-3.5" />
+          <span>
+            Algorithmic Rationale
+            <span className="block text-[10px] font-normal text-slate-400 leading-tight">
+              Explanation of our MVO Quantitative model.
+            </span>
+          </span>
+          <ChevronDown
+            className={`size-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {open && (
+          <div className="mt-2 rounded-md bg-blue-50/50 dark:bg-blue-950/20 border border-slate-200 dark:border-slate-700 px-3 py-2">
+            {rec.rationale ? (
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                {renderWithGlossary(rec.rationale)}
+              </p>
+            ) : isOptimizing ? (
+              <div className="space-y-1.5">
+                <div className="h-2.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                <div className="h-2.5 w-4/5 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                <p className="text-xs text-slate-400 italic pt-0.5">Generating insight…</p>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic">AI insight unavailable.</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -327,8 +401,16 @@ export function WealthAnalytics() {
                 Auto-Optimize Portfolio
               </Button>
             </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              Executes a Mean-Variance Optimization (MVO) algorithm to project the Efficient Frontier, identifying the exact asset weights that maximize your Sharpe ratio subject to strict liquidity constraints for your active liabilities.
+            <TooltipContent className="max-w-xs text-xs leading-relaxed">
+              Executes a{" "}
+              <GlossaryTerm term="Mean-Variance Optimization">Mean-Variance Optimization (MVO)</GlossaryTerm>{" "}
+              algorithm to project the{" "}
+              <GlossaryTerm term="Efficient Frontier" />,{" "}
+              identifying the exact asset weights that maximize your{" "}
+              <GlossaryTerm term="Sharpe Ratio">Sharpe ratio</GlossaryTerm>{" "}
+              subject to strict{" "}
+              <GlossaryTerm term="Liquidity Constraints">liquidity constraints</GlossaryTerm>{" "}
+              for your active liabilities.
             </TooltipContent>
           </Tooltip>
         </CardHeader>
@@ -416,30 +498,7 @@ export function WealthAnalytics() {
                 const isBuy = rec.action.includes("Buy")
                 const isSell = rec.action.includes("Sell")
                 return (
-                  <div
-                    key={rec.asset}
-                    className="rounded-lg border border-border p-4 space-y-2"
-                  >
-                    <p className="font-semibold text-sm text-foreground truncate">
-                      {rec.asset}
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Current {(rec.currentWeight * 100).toFixed(1)}%</span>
-                      <span>→</span>
-                      <span>Optimized {(rec.optimizedWeight * 100).toFixed(1)}%</span>
-                    </div>
-                    <p
-                      className={`text-sm font-bold ${
-                        isBuy
-                          ? "text-emerald-500"
-                          : isSell
-                            ? "text-rose-500"
-                            : "text-muted-foreground"
-                      }`}
-                    >
-                      {rec.action}
-                    </p>
-                  </div>
+                  <TradeCard key={rec.asset} rec={rec} isBuy={isBuy} isSell={isSell} isOptimizing={isOptimizing} />
                 )
               })}
             </div>
