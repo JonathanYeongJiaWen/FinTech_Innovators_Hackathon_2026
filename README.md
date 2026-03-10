@@ -1,8 +1,11 @@
-# 🛡️ Myney: The Wealth Wellness Hub
+# 💳 Myney: The Wealth Wellness Hub
 
 **Team Name:** XiaoJongBao  
 **Video Pitch:** [Insert YouTube Link Here]
 
+### Live Demo
+* **Frontend Application:** [Myney](https://tinyurl.com/Myneyy)
+* **Backend API Docs (Swagger):** [Myney Backend](https://myney.azurewebsites.net/docs)
 ---
 
 ## 🚀 About The Project
@@ -30,21 +33,16 @@ Our solution delivers an intuitive, dual-sided dashboard that fosters proactive 
 * **Macro Stress-Tester:** Simulates systemic shocks (e.g., Tech Crashes or Rate Hikes) to predict the impact on long-term net worth and life milestones.
 * **MVO-Driven Optimization:** An algorithmic rebalancing engine using Mean-Variance Optimization to pull "stretched" portfolios into a balanced, resilient state.
 * **Advisor Triage Hub:** A professional command center for managers to monitor client Wellness Scores and push personalized rebalancing proposals with one click.
----
-
-## Live Demo
-* **Frontend Application:** [Myney](https://tinyurl.com/Myneyy)
-* **Backend API Docs (Swagger):** [Myney Backend](https://myney.azurewebsites.net/docs)
 
 ---
 
 ## 💻 Local Development
-Follow these steps to run the Myney application locally. You will need three terminal windows to run the full stack.
+Follow these steps to run the Myney application locally. You will need two terminal windows to run the full stack.
 
 ### Prerequisites
 * Python 3.9+ & Java 17+
 * Node.js (v18+)
-* A Google Gemini API Key [Get one here](https://aistudio.google.com/u/1/)
+* A Google Gemini API Key [(Get one here)](https://aistudio.google.com/u/1/)
 
 ### 1. Create and activate a virtual environment
 Open your first terminal and navigate to your backend folder:
@@ -62,8 +60,8 @@ python3 -m venv venv && source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Create environment variables
-echo "GEMINI_API_KEY=your_key_here" > .env
+# Create .env file
+#Add: GEMINI_API_KEY=your_actual_key_here
 
 # Start the server
 python -m uvicorn main:app --reload
