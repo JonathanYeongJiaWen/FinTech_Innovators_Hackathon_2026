@@ -5,3 +5,7 @@ numpy
 scipy
 google-genai
 python-dotenv
+# Feature 1 – Unified Wallet
+yfinance
+python-jose[cryptography]
+passlib[bcrypt]

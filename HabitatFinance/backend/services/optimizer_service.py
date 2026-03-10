@@ -3,7 +3,7 @@ import numpy as np
 from scipy.optimize import minimize
 from fastapi import HTTPException
 
-from models.optimizer_models import (
+from schemas.optimizer_schema import (
     OptimizeRequest,
     OptimizeResponse,
     AssetRecommendation,

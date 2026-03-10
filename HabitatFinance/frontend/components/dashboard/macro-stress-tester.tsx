@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider"
 import { TrendingDown, Percent, RefreshCw, AlertTriangle, ArrowRight, Sparkles, Info } from "lucide-react"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { MilestoneSummary } from "@/components/dashboard/milestone-summary"
+import { API_BASE } from "@/lib/api"
 
 type Scenario = "tech-crash" | "rate-hike"
 
@@ -58,7 +59,7 @@ export function MacroStressTester() {
     setAiAnalysis("")
     setSimulationReasoning("")
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/stress-test", {
+      const res = await fetch(`${API_BASE}/api/v1/stress-test`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

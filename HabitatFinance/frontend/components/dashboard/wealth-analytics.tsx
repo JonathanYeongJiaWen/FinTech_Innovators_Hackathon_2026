@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { API_BASE } from "@/lib/api"
 import {
   Table,
   TableBody,
@@ -12,7 +13,8 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Treemap, ResponsiveContainer, Tooltip } from "recharts"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Treemap, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts"
 import { PieChart, TableIcon, Sparkles, Loader2, Activity } from "lucide-react"
 import { MilestoneSummary } from "@/components/dashboard/milestone-summary"
 import { RiskSensitivityRadar } from "@/components/dashboard/risk-sensitivity-radar"
@@ -201,7 +203,7 @@ export function WealthAnalytics() {
   useEffect(() => {
     const fetchAssets = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/v1/assets")
+        const res = await fetch(`${API_BASE}/api/v1/assets`)
         if (!res.ok) throw new Error(`Request failed`)
         const data: BackendAsset[] = await res.json()
         
@@ -256,7 +258,7 @@ export function WealthAnalytics() {
 
     try {
       const res = await fetch(
-        "http://127.0.0.1:8000/api/v1/optimize-portfolio",
+        `${API_BASE}/api/v1/optimize-portfolio`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -314,14 +316,21 @@ export function WealthAnalytics() {
             <PieChart className="size-5 text-primary" />
             Portfolio Allocation
           </CardTitle>
-          <Button size="sm" onClick={handleOptimize} disabled={isOptimizing}>
-            {isOptimizing ? (
-              <Loader2 className="size-4 animate-spin mr-2" />
-            ) : (
-              <Sparkles className="size-4 mr-2" />
-            )}
-            Auto-Optimize Portfolio
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" onClick={handleOptimize} disabled={isOptimizing}>
+                {isOptimizing ? (
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                ) : (
+                  <Sparkles className="size-4 mr-2" />
+                )}
+                Auto-Optimize Portfolio
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              Executes a Mean-Variance Optimization (MVO) algorithm to project the Efficient Frontier, identifying the exact asset weights that maximize your Sharpe ratio subject to strict liquidity constraints for your active liabilities.
+            </TooltipContent>
+          </Tooltip>
         </CardHeader>
         <CardContent>
           {/* Loading skeleton */}
@@ -354,7 +363,7 @@ export function WealthAnalytics() {
                       stroke="none"
                       content={<CustomTreemapContent />}
                     >
-                      <Tooltip content={<CustomTooltip />} />
+                      <RechartsTooltip content={<CustomTooltip />} />
                     </Treemap>
                   </ResponsiveContainer>
                 </div>
@@ -375,7 +384,7 @@ export function WealthAnalytics() {
                         stroke="none"
                         content={<CustomTreemapContent />}
                       >
-                        <Tooltip content={<CustomTooltip />} />
+                        <RechartsTooltip content={<CustomTooltip />} />
                       </Treemap>
                     </ResponsiveContainer>
                   </div>

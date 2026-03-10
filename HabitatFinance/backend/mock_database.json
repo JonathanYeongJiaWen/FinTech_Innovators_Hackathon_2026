@@ -1,4 +1,72 @@
 {
+  "client_id": "client_001",
+  "profile": {
+    "name": "Jonathan Tan",
+    "age": 32,
+    "risk_profile": "Aggressive Growth",
+    "base_currency": "SGD"
+  },
+  "tradfi_holdings": [
+    {
+      "ticker": "AAPL",
+      "quantity": 350,
+      "average_buy_price": 150.00,
+      "currency": "USD",
+      "type": "stock",
+      "name": "Apple Inc."
+    },
+    {
+      "ticker": "MSFT",
+      "quantity": 200,
+      "average_buy_price": 280.00,
+      "currency": "USD",
+      "type": "stock",
+      "name": "Microsoft Corporation"
+    },
+    {
+      "ticker": "D05.SI",
+      "quantity": 1500,
+      "average_buy_price": 31.50,
+      "currency": "SGD",
+      "type": "stock",
+      "name": "DBS Group Holdings"
+    },
+    {
+      "ticker": "CASH",
+      "quantity": 80000,
+      "currency": "SGD",
+      "type": "bank",
+      "name": "Cash / Bank Deposit",
+      "account_id": "DBS-SAVINGS-001",
+      "balance": 80000
+    }
+  ],
+  "web3_holdings": {
+    "public_wallet_address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    "manual_tokens": [
+      { "symbol": "ETH", "quantity": 4.5 },
+      { "symbol": "USDC", "quantity": 15000 }
+    ]
+  },
+  "private_holdings": [
+    {
+      "asset_type": "Real Estate",
+      "description": "HDB 4-Room Flat",
+      "estimated_value": 450000,
+      "currency": "SGD",
+      "asset_ref": "priv_real_estate_001",
+      "ownership_fraction": 1.0
+    },
+    {
+      "asset_type": "Private Equity",
+      "description": "Startup Seed Investment",
+      "estimated_value": 25000,
+      "currency": "SGD",
+      "asset_ref": "priv_equity_001",
+      "ownership_fraction": 1.0
+    }
+  ],
+  "_legacy": {
   "portfolioId": "user_98765",
   "assets": [
     {
@@ -80,5 +148,6 @@
   "dailyReturns": {
     "equities": [0.012, -0.008, 0.015, -0.022, 0.018, 0.005, -0.010, 0.020, -0.015, 0.008, 0.013, -0.018, 0.025, -0.012, 0.009, 0.016, -0.020, 0.011, 0.007, -0.013, 0.022, -0.009, 0.014, 0.008, -0.016, 0.019, -0.011, 0.013, 0.006, -0.014],
     "digitalAssets": [0.035, -0.042, 0.028, -0.051, 0.045, 0.015, -0.038, 0.052, -0.048, 0.022, 0.031, -0.055, 0.061, -0.035, 0.018, 0.041, -0.058, 0.027, 0.019, -0.044, 0.054, -0.025, 0.033, 0.021, -0.047, 0.049, -0.029, 0.037, 0.014, -0.040]
+  }
   }
 }

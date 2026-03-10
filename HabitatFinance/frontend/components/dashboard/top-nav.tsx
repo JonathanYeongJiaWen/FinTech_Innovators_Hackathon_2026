@@ -7,6 +7,7 @@ import { useTheme } from "@/components/theme-provider"
 import { Wallet, Moon, Sun, User, LayoutDashboard, BarChart3, Zap } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { useViewMode } from "@/lib/view-mode-context"
 
 export function TopNav() {
@@ -14,6 +15,12 @@ export function TopNav() {
   const pathname = usePathname()
   const router = useRouter()
   const { viewMode, setViewMode } = useViewMode()
+
+  useEffect(() => {
+    if (pathname !== "/overview") {
+      setViewMode("client")
+    }
+  }, [pathname, setViewMode])
 
   function handleViewModeChange(checked: boolean) {
     const next = checked ? "advisor" : "client"
