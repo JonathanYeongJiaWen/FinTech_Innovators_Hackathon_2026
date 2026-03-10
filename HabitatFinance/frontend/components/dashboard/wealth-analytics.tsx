@@ -76,6 +76,7 @@ interface TradeRecommendation {
   optimizedWeight: number
   action: string
   rationale?: string
+  rationale_source?: "ai" | "rule_based"
 }
 
 const MOCK_PARAMS: Record<string, { ret: number; vol: number }> = {
@@ -189,7 +190,14 @@ function TradeCard({ rec, isBuy, isSell, isOptimizing }: { rec: TradeRecommendat
         {open && (
           <div className="mt-2 rounded-md bg-blue-50/50 dark:bg-blue-950/20 border border-slate-200 dark:border-slate-700 px-3 py-2">
             {rec.rationale ? (
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{renderWithGlossary(rec.rationale)}</p>
+              <>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{renderWithGlossary(rec.rationale)}</p>
+                {rec.rationale_source === "rule_based" && (
+                  <p className="mt-1.5 text-[10px] text-amber-500 dark:text-amber-400 flex items-center gap-1">
+                    <span>⚠</span> Auto-generated (AI quota reached)
+                  </p>
+                )}
+              </>
             ) : isOptimizing ? (
               <div className="space-y-1.5">
                 <div className="h-2.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />

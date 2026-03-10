@@ -126,8 +126,32 @@ async def run_stress_test(request: ScenarioRequest) -> ScenarioResponse:
     )
 
     try:
-        response = await client.aio.models.generate_content(model="gemini-1.5-flash", contents=prompt)
-        ai_analysis = response.text
+        _models_to_try = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
+        ai_analysis = None
+        for _model in _models_to_try:
+            for _attempt in range(2):  # allow one RPM-wait retry per model
+                try:
+                    response = await client.aio.models.generate_content(model=_model, contents=prompt)
+                    ai_analysis = response.text
+                    break
+                except Exception as _exc:
+                    _exc_str = str(_exc)
+                    if "429" not in _exc_str and "RESOURCE_EXHAUSTED" not in _exc_str:
+                        raise
+                    if _attempt == 0:
+                        import re as _re
+                        _m = _re.search(r"retryDelay[^0-9]+(\d+(?:\.\d+)?)s", _exc_str)
+                        if _m:
+                            _delay = float(_m.group(1))
+                            if _delay <= 30:
+                                import asyncio as _asyncio
+                                await _asyncio.sleep(_delay + 0.5)
+                                continue
+                    break  # move to next model
+            if ai_analysis is not None:
+                break
+        if ai_analysis is None:
+            raise RuntimeError("All models exhausted quota")
     except Exception:
         _stress_fallbacks: dict[str, str] = {
             "TECH_CRASH": (

@@ -156,7 +156,7 @@ async def generate_advisor_insight(request: InsightRequest) -> InsightResponse:
     )
 
     try:
-        response = await client.aio.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+        response = await client.aio.models.generate_content(model="gemini-2.0-flash", contents=prompt)
         raw = response.text.strip()
     except Exception:
         _ac1 = request.portfolio_summary.asset_class_1

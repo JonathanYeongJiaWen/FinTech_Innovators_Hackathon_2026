@@ -322,7 +322,7 @@ async def evaluate_scenarios(request: ScenariosRequest) -> ScenariosResponse:
             "Reply in 2-3 sentences maximum."
         )
         try:
-            response = await client.aio.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+            response = await client.aio.models.generate_content(model="gemini-2.0-flash", contents=prompt)
             recommendation = response.text.strip()
         except Exception:
             _months_runway = round(request.cash_reserves / max(request.monthly_burn_rate, 1))

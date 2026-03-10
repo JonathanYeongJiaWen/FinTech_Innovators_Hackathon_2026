@@ -4,7 +4,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import requests
 import yfinance as yf
 from fastapi import HTTPException
 from scipy.optimize import minimize
@@ -21,14 +20,6 @@ logger = logging.getLogger(__name__)
 RISK_FREE_RATE = 0.03
 FALLBACK_DATA_PATH = Path(__file__).parent.parent / "fallback_market_data.json"
 
-# Standard Chrome User-Agent header — helps avoid Yahoo Finance IP rate-limits
-_CHROME_UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/122.0.0.0 Safari/537.36"
-)
-
-
 def _fetch_market_data(tickers: list[str]) -> tuple[pd.DataFrame, bool]:
     """Download one year of daily Close prices for *tickers*.
 
@@ -36,17 +27,12 @@ def _fetch_market_data(tickers: list[str]) -> tuple[pd.DataFrame, bool]:
     data came from Yahoo Finance and ``False`` means the local fallback file
     ``fallback_market_data.json`` was used instead.
     """
-    # --- Anti-blocker: Chrome session ---
-    session = requests.Session()
-    session.headers.update({"User-Agent": _CHROME_UA})
-
     try:
         raw = yf.download(
             tickers,
             period="1y",
             auto_adjust=True,
             progress=False,
-            session=session,
             timeout=15,
         )
         prices: pd.DataFrame = raw["Close"] if "Close" in raw.columns.get_level_values(0) else raw
@@ -90,7 +76,7 @@ def _fetch_market_data(tickers: list[str]) -> tuple[pd.DataFrame, bool]:
         ) from exc
 
 
-def optimize_portfolio_service(request: OptimizeRequest) -> OptimizeResponse:
+async def optimize_portfolio_service(request: OptimizeRequest) -> OptimizeResponse:
     n = len(request.asset_names)
 
     # --- Input validation ---
@@ -190,7 +176,7 @@ def optimize_portfolio_service(request: OptimizeRequest) -> OptimizeResponse:
     }
 
     # --- Explainable AI: attach LLM-generated rationales ---
-    rationales = generate_trade_rationales(recommendations, projected_sharpe)
+    rationales = await generate_trade_rationales(recommendations, projected_sharpe)
     for rec in recommendations:
         rec.rationale = rationales.get(rec.asset, "")
 

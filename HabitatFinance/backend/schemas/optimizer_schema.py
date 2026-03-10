@@ -19,6 +19,7 @@ class AssetRecommendation(BaseModel):
     optimizedWeight: float
     action: str
     rationale: str = ""
+    rationale_source: str = "ai"  # "ai" | "rule_based"
 
 
 class OptimizeResponse(BaseModel):

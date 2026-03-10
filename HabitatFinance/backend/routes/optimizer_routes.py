@@ -6,5 +6,5 @@ router = APIRouter(tags=["Portfolio Optimizer"])
 
 
 @router.post("/api/v1/optimize-portfolio", response_model=OptimizeResponse)
-def optimize_portfolio(request: OptimizeRequest) -> OptimizeResponse:
-    return optimize_portfolio_service(request)
+async def optimize_portfolio(request: OptimizeRequest) -> OptimizeResponse:
+    return await optimize_portfolio_service(request)

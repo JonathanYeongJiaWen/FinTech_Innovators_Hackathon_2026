@@ -1,16 +1,18 @@
-import concurrent.futures
 import json
 import logging
 import os
+import re
 
 from google import genai
-from google.genai import types
 
 from schemas.optimizer_schema import AssetRecommendation
 
 logger = logging.getLogger(__name__)
 
-_RATIONALE_TIMEOUT_SECONDS = 15
+_MODELS_TO_TRY = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash-8b"]
+_MAX_RPM_WAIT = 30.0
+
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 _SYSTEM_PROMPT_TEMPLATE = (
     "You are a quantitative wealth advisor explaining a Mean-Variance Optimization "
@@ -23,43 +25,77 @@ _SYSTEM_PROMPT_TEMPLATE = (
 )
 
 
-def _get_client() -> genai.Client:
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        raise EnvironmentError(
-            "No Gemini API key found. Set the GEMINI_API_KEY environment variable."
+def _rule_based_rationale(rec: AssetRecommendation, projected_sharpe: float) -> str:
+    """Generate a deterministic but financially meaningful rationale from optimizer output."""
+    name = rec.asset
+    cur = rec.currentWeight
+    opt = rec.optimizedWeight
+    diff = opt - cur
+    diff_pct = abs(diff) * 100
+
+    if rec.action.startswith("Buy"):
+        if opt > 0.20:
+            return (
+                f"The optimizer raised {name}'s allocation by {diff_pct:.1f}% to {opt*100:.1f}%, "
+                f"as its risk-adjusted return profile improves the portfolio's position on the "
+                f"Efficient Frontier and lifts the projected Sharpe ratio to {projected_sharpe:.2f}."
+            )
+        return (
+            f"Increasing {name} by {diff_pct:.1f}% reduces overall portfolio variance through "
+            f"diversification, contributing to the {projected_sharpe:.2f} projected Sharpe ratio "
+            f"without meaningfully raising concentration risk."
         )
-    return genai.Client(api_key=api_key)
+    elif rec.action.startswith("Sell"):
+        if cur > 0.25:
+            return (
+                f"{name}'s current weight of {cur*100:.1f}% creates sector concentration risk; "
+                f"trimming by {diff_pct:.1f}% to {opt*100:.1f}% lowers covariance drag and "
+                f"shifts the portfolio closer to the mean-variance optimal frontier."
+            )
+        return (
+            f"Reducing {name} by {diff_pct:.1f}% improves the portfolio's risk-adjusted return "
+            f"by reallocating capital to assets with a better expected return per unit of volatility, "
+            f"targeting a Sharpe ratio of {projected_sharpe:.2f}."
+        )
+    else:
+        return (
+            f"{name}'s current weight of {cur*100:.1f}% is already near the mean-variance optimal "
+            f"allocation; no rebalancing is required to maintain the {projected_sharpe:.2f} "
+            f"projected Sharpe ratio."
+        )
 
 
-def _fallback_rationales(recommendations: list[AssetRecommendation]) -> dict[str, str]:
-    return {
-        rec.asset: "Quantitative optimisation complete. AI rationale is currently unavailable."
-        for rec in recommendations
-    }
+def _fallback_rationales(
+    recommendations: list[AssetRecommendation],
+    projected_sharpe: float = 0.0,
+) -> dict[str, str]:
+    for rec in recommendations:
+        rec.rationale_source = "rule_based"
+    return {rec.asset: _rule_based_rationale(rec, projected_sharpe) for rec in recommendations}
 
 
-def generate_trade_rationales(
+def _parse_rpm_delay(exc_str: str) -> float | None:
+    """Return retry delay if it's a per-minute limit (≤30 s), else None."""
+    m = re.search(r"retryDelay[^0-9]+(\d+(?:\.\d+)?)s", exc_str)
+    if m:
+        delay = float(m.group(1))
+        return delay if delay <= _MAX_RPM_WAIT else None
+    return None
+
+
+async def generate_trade_rationales(
     recommendations: list[AssetRecommendation],
     projected_sharpe: float,
 ) -> dict[str, str]:
-    """Call the Gemini LLM to produce a rationale string for each asset.
-
-    Returns a dict mapping asset name -> rationale string.
-    Falls back to empty strings on any error so the optimizer response is
-    never blocked by an LLM failure.
-    """
+    """Async Gemini call — mirrors stress_test_service pattern exactly."""
     if not recommendations:
         return {}
 
-    try:
-        client = _get_client()
-    except EnvironmentError as exc:
-        logger.warning("LLM rationale skipped: %s", exc)
-        return _fallback_rationales(recommendations)
+    if not os.getenv("GEMINI_API_KEY"):
+        logger.warning("LLM rationale skipped: GEMINI_API_KEY not set")
+        return _fallback_rationales(recommendations, projected_sharpe)
 
     system_prompt = _SYSTEM_PROMPT_TEMPLATE.format(projected_sharpe=projected_sharpe)
-
     trade_payload = [
         {
             "asset": rec.asset,
@@ -69,38 +105,37 @@ def generate_trade_rationales(
         }
         for rec in recommendations
     ]
-    user_message = json.dumps(trade_payload, indent=2)
+    prompt = f"{system_prompt}\n\n{json.dumps(trade_payload, indent=2)}"
 
-    def _call_llm() -> str:
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=user_message,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                response_mime_type="application/json",
-                temperature=0.4,
-            ),
-        )
-        return response.text.strip()
+    import asyncio
 
-    try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_call_llm)
-            raw = future.result(timeout=_RATIONALE_TIMEOUT_SECONDS)
+    for model in _MODELS_TO_TRY:
+        for attempt in range(2):
+            try:
+                response = await client.aio.models.generate_content(
+                    model=model, contents=prompt
+                )
+                raw = response.text.strip()
+                if raw.startswith("```"):
+                    raw = raw.split("```")[1]
+                    if raw.startswith("json"):
+                        raw = raw[4:]
+                    raw = raw.strip()
+                rationales: dict = json.loads(raw)
+                return {str(k): str(v) for k, v in rationales.items()}
+            except Exception as exc:
+                exc_str = str(exc)
+                if "429" not in exc_str and "RESOURCE_EXHAUSTED" not in exc_str:
+                    logger.warning("LLM unexpected error: %s", exc_str[:200])
+                    return _fallback_rationales(recommendations, projected_sharpe)
+                if attempt == 0:
+                    delay = _parse_rpm_delay(exc_str)
+                    if delay is not None:
+                        logger.info("RPM limit on %s, retrying after %.1fs", model, delay)
+                        await asyncio.sleep(delay + 0.5)
+                        continue
+                logger.warning("Model %s quota exhausted, trying next.", model)
+                break  # move to next model
 
-        # Strip markdown code fences if the model adds them despite the MIME hint
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.strip()
-
-        rationales: dict = json.loads(raw)
-        return {str(k): str(v) for k, v in rationales.items()}
-
-    except concurrent.futures.TimeoutError:
-        logger.warning("LLM rationale generation timed out after %ds", _RATIONALE_TIMEOUT_SECONDS)
-        return _fallback_rationales(recommendations)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("LLM rationale generation failed: %s", exc)
-        return _fallback_rationales(recommendations)
+    logger.warning("All models exhausted quota, returning fallback.")
+    return _fallback_rationales(recommendations, projected_sharpe)

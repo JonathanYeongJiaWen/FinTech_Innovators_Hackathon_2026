@@ -2,7 +2,6 @@ import json
 import logging
 from pathlib import Path
 
-import requests
 import yfinance as yf
 
 from adapters.base_adapter import BaseAdapter
@@ -11,13 +10,6 @@ from entities.wealth_wallet_item import WealthWalletItem
 logger = logging.getLogger(__name__)
 
 DATA_PATH = Path(__file__).parent.parent / "mock_database.json"
-
-# Standard Chrome User-Agent — reduces Yahoo Finance IP rate-limiting on Azure
-_CHROME_UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/122.0.0.0 Safari/537.36"
-)
 
 # Tickers that are not traded on a public exchange (cash, deposits, etc.)
 _NON_MARKET_TICKERS = {"CASH"}
@@ -40,16 +32,9 @@ class TradfiAdapter(BaseAdapter):
         return db.get("tradfi_holdings", [])
 
     def _fetch_live_price(self, ticker: str) -> float:
-        """Return the latest closing price for *ticker* via yfinance.
-
-        A requests.Session with a Chrome User-Agent is passed to every
-        yfinance call so that Azure server IPs are less likely to be
-        rate-limited by Yahoo Finance.
-        """
-        session = requests.Session()
-        session.headers.update({"User-Agent": _CHROME_UA})
+        """Return the latest closing price for *ticker* via yfinance."""
         try:
-            info = yf.Ticker(ticker, session=session).fast_info
+            info = yf.Ticker(ticker).fast_info
             price = getattr(info, "last_price", None)
             if price and price > 0:
                 return float(price)
