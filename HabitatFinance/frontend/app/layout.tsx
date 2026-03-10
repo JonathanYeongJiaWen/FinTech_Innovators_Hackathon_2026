@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { ViewModeProvider } from '@/lib/view-mode-context'
@@ -51,7 +50,6 @@ export default function RootLayout({
           </ViewModeProvider>
         </ThemeProvider>
         <Toaster richColors />
-        <Analytics />
       </body>
     </html>
   )
