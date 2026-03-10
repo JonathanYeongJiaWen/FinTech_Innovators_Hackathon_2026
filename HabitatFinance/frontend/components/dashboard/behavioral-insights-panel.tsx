@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { BehavioralRadarChart } from "@/components/dashboard/behavioral-radar-chart"
 import { CostOfBehaviorCard } from "@/components/dashboard/cost-of-behavior-card"
 import { AlertTriangle } from "lucide-react"
+import { API_BASE } from "@/lib/api"
 
 interface BehavioralProfile {
   lossAversion: number
@@ -30,8 +31,6 @@ interface BehavioralInsightsPayload {
 interface BehavioralInsightsPanelProps {
   clientId: string
 }
-
-const API_BASE = "http://127.0.0.1:8000"
 
 /**
  * Wrapper component that fetches and displays both the Behavioral Health

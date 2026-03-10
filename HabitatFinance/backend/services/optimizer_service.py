@@ -3,11 +3,12 @@ import numpy as np
 from scipy.optimize import minimize
 from fastapi import HTTPException
 
-from models.optimizer_models import (
+from schemas.optimizer_schema import (
     OptimizeRequest,
     OptimizeResponse,
     AssetRecommendation,
 )
+from services.llm_service import generate_trade_rationales
 
 RISK_FREE_RATE = 0.03
 
@@ -97,6 +98,11 @@ def optimize_portfolio_service(request: OptimizeRequest) -> OptimizeResponse:
         name: round(float(opt_weights[i]), 6)
         for i, name in enumerate(request.asset_names)
     }
+
+    # --- Explainable AI: attach LLM-generated rationales ---
+    rationales = generate_trade_rationales(recommendations, projected_sharpe)
+    for rec in recommendations:
+        rec.rationale = rationales.get(rec.asset, "")
 
     return OptimizeResponse(
         optimizedWeights=optimized_weights,

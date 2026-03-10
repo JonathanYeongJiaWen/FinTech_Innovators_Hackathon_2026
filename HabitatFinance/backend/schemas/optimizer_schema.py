@@ -13,6 +13,7 @@ class AssetRecommendation(BaseModel):
     currentWeight: float
     optimizedWeight: float
     action: str
+    rationale: str = ""
 
 
 class OptimizeResponse(BaseModel):

@@ -5,6 +5,7 @@ import { useMilestoneStore, type ScenarioResult } from "@/lib/milestone-store"
 import { LiquidityReadiness } from "@/components/dashboard/liquidity-readiness"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { API_BASE } from "@/lib/api"
 import {
   Dialog,
   DialogContent,
@@ -88,7 +89,7 @@ export function LifeMilestones() {
 
     setIsSubmitting(true)
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/v1/wellness/scenarios", {
+      const res = await fetch(`${API_BASE}/api/v1/wellness/scenarios`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

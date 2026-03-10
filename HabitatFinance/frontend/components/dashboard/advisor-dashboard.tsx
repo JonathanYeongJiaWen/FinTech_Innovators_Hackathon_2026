@@ -60,7 +60,7 @@ interface Insight {
   recommended_action: string
 }
 
-const API_BASE = "http://127.0.0.1:8000"
+import { API_BASE } from "@/lib/api"
 
 export function AdvisorDashboard() {
   const [clients, setClients] = useState<Client[]>([])
