@@ -28,7 +28,7 @@ jobs:
       # The following section in your workflow is designed to catch build issues early on the client side, before deployment. This can be helpful for debugging and validation. However, if this step significantly increases deployment time and early detection is not critical for your workflow, you may remove this section to streamline the deployment process.
       - name: Create and Start virtual environment and Install dependencies
         run: |
-          cd HabitatFinance/backend
+          cd Myney/backend
           python -m venv antenv
           source antenv/bin/activate
           python -m pip install --upgrade pip
@@ -39,7 +39,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: HabitatFinance/backend/
+          path: Myney/backend/
 
       # 🚫 Opting Out of Oryx Build
       # If you prefer to disable the Oryx build process during deployment, follow these steps:
