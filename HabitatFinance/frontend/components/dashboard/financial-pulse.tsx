@@ -4,10 +4,22 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { 
   Sparkles, TrendingUp, BrainCircuit, Zap, 
-  Info, AlertTriangle, ArrowRight 
+  Info, AlertTriangle, ArrowRight, Wallet, RefreshCw
 } from "lucide-react"
+import { API_BASE } from "@/lib/api"
+import { useWalletData } from "@/hooks/use-wallet-data"
+import type { WealthWalletItem } from "@/api/wallet"
 import { LineChart, Line, ResponsiveContainer } from "recharts"
 import {
   Tooltip,
@@ -45,13 +57,20 @@ export function FinancialPulse() {
   const isHighRisk = synergy.correlationCoefficient > 0.7;
   const circumference = 2 * Math.PI * 70
 
+  // Live wallet data from backend
+  const {
+    data: walletData,
+    isLoading: isWalletLoading,
+    refetch: refetchWallet,
+  } = useWalletData("client_001")
+
   useEffect(() => {
     const fetchWellness = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/v1/wellness")
+        const res = await fetch(`${API_BASE}/api/v1/wellness`)
         if (!res.ok) throw new Error(`Request failed`)
         const data = await res.json()
-        setNetWorth(data.totalNetWorthUSD || 700000)
+        setNetWorth(data.totalNetWorthUSD ?? 700000)
         setWellnessScore(data.wellnessScore || 82)
         if (data.behavioralResilience) setBehavioralResilience(data.behavioralResilience)
         if (data.digitalTraditionalSynergy) setSynergy(data.digitalTraditionalSynergy)
@@ -63,6 +82,13 @@ export function FinancialPulse() {
     }
     fetchWellness()
   }, [])
+
+  // Once walletData arrives, use its total as the primary source of net worth
+  useEffect(() => {
+    if (walletData?.total_value_usd) {
+      setNetWorth(walletData.total_value_usd)
+    }
+  }, [walletData])
 
   if (isPulseLoading) return <div className="p-8 text-center animate-pulse">Syncing...</div>
 
@@ -174,7 +200,84 @@ export function FinancialPulse() {
         </Card>
       </div>
 
-      {/* ROW 3: Full Width - Life Milestones */}
+      {/* ROW 3: Live Portfolio Holdings */}
+      <Card className="bg-card border-border">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between gap-2">
+            <span className="flex items-center gap-2">
+              <Wallet className="size-5 text-[#108548]" />
+              Live Portfolio Holdings
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 text-muted-foreground hover:text-foreground"
+              onClick={refetchWallet}
+              disabled={isWalletLoading}
+            >
+              <RefreshCw className={`size-4 ${isWalletLoading ? "animate-spin" : ""}`} />
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isWalletLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full rounded-md" />
+              ))}
+            </div>
+          ) : walletData && walletData.holdings.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Asset</TableHead>
+                  <TableHead>Class</TableHead>
+                  <TableHead className="text-right">Qty</TableHead>
+                  <TableHead className="text-right">Price</TableHead>
+                  <TableHead className="text-right">Value (USD)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {walletData.holdings.map((item: WealthWalletItem) => (
+                  <TableRow key={item.asset_id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-semibold text-sm">{item.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{item.ticker_or_symbol}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-muted text-muted-foreground">
+                        {item.asset_class}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-sm">
+                      {item.quantity.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-sm">
+                      {item.current_price > 0
+                        ? `$${item.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold text-sm">
+                      ${item.total_value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm text-muted-foreground py-4 text-center">No holdings data available.</p>
+          )}
+          {walletData && (
+            <div className="mt-3 flex justify-end text-xs text-muted-foreground">
+              Total: <span className="ml-1 font-bold text-foreground">${walletData.total_value_usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ROW 4: Full Width - Life Milestones */}
       <LifeMilestones />
 
       {/* ROW 4: Behavioral DNA (1:2 Split) */}
