@@ -273,6 +273,7 @@ export function WealthAnalytics() {
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [optimizedData, setOptimizedData] = useState<FlatNode[] | null>(null)
   const [tradeRecommendations, setTradeRecommendations] = useState<TradeRecommendation[]>([])
+  const [isLiveData, setIsLiveData] = useState<boolean | null>(null)
 
   useEffect(() => {
     const fetchAssets = async () => {
@@ -311,6 +312,7 @@ export function WealthAnalytics() {
     setIsOptimizing(true)
     setOptimizedData(null)
     setTradeRecommendations([])
+    setIsLiveData(null)
 
     const totalValue = portfolioAssets.reduce((s, a) => s + a.currentValueUSD, 0)
     const assetNames = portfolioAssets.map((a) => a.name)
@@ -359,6 +361,7 @@ export function WealthAnalytics() {
 
       setOptimizedData(buildTreemapData(optimisedAssets))
       setTradeRecommendations(data.recommendations ?? [])
+      setIsLiveData(data.is_live_data ?? true)
     } catch (err) {
       console.error(err)
     } finally {
@@ -487,10 +490,23 @@ export function WealthAnalytics() {
       {tradeRecommendations.length > 0 && (
         <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2">
-              <Sparkles className="size-5 text-primary" />
-              Trade Recommendations
-            </CardTitle>
+            <div className="flex flex-wrap items-center gap-3">
+              <CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2">
+                <Sparkles className="size-5 text-primary" />
+                Trade Recommendations
+              </CardTitle>
+              {isLiveData !== null && (
+                <span
+                  className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full border ${
+                    isLiveData
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+                      : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"
+                  }`}
+                >
+                  {isLiveData ? "🟢 Live Market Data" : "🟡 Static Fallback Data"}
+                </span>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
