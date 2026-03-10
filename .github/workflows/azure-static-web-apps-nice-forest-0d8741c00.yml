@@ -33,6 +33,9 @@ jobs:
           output_location: "out"
           app_build_command: "npm run build"
           ###### End of Repository/Build Configurations ######
+        env:
+          NEXT_PUBLIC_API_BASE: "https://myney.azurewebsites.net"
+          NEXT_PUBLIC_DEV_TOKEN: ${{ secrets.NEXT_PUBLIC_DEV_TOKEN }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
