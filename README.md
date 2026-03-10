@@ -33,8 +33,8 @@ Our solution delivers an intuitive, dual-sided dashboard that fosters proactive 
 ---
 
 ## Live Demo
-* **Frontend Application:** [Insert Vercel/Cloudflare Link Here]
-* **Backend API Docs (Swagger):** [Insert Render/Azure Link Here]/docs
+* **Frontend Application:** [Myney](https://tinyurl.com/Myneyy)
+* **Backend API Docs (Swagger):** [Myney Backend](https://myney.azurewebsites.net/docs)
 
 ---
 
