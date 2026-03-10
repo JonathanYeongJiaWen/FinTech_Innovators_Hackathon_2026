@@ -4,18 +4,9 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { 
   Sparkles, TrendingUp, BrainCircuit, Zap, 
-  Info, AlertTriangle, ArrowRight, Wallet, RefreshCw
+  Info, AlertTriangle, ArrowRight 
 } from "lucide-react"
 import { LineChart, Line, ResponsiveContainer } from "recharts"
 import {
@@ -24,23 +15,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useWalletData } from "@/hooks/use-wallet-data"
-import type { WealthWalletItem } from "@/api/wallet"
-import { API_BASE } from "@/lib/api"
 
-// Mock trend data for the Wellness Sparkline
-const trendData = [
-  { val: 20 }, { val: 25 }, { val: 22 }, { val: 30 }, { val: 28 }, { val: 28.2 }
-]
+// Modular Component Imports
+import { LifeMilestones } from "@/components/dashboard/life-milestones"
+import { ResilienceBreakdown, MOCK_RESILIENCE_DATA } from "@/components/dashboard/resilience-breakdown"
+import { DisciplineChart } from "@/components/dashboard/discipline-chart"
+import { CoachingNudgeCard } from "@/components/dashboard/coaching-nudge-card"
+
+const trendData = [{ val: 20 }, { val: 25 }, { val: 22 }, { val: 30 }, { val: 28 }, { val: 28.2 }]
 
 export function FinancialPulse() {
   const router = useRouter()
-
-  // ── Live wallet data (Feature 1: Unified Wallet) ──────────────────────────
-  const { data: walletData, isLoading: isWalletLoading, error: walletError, refetch } =
-    useWalletData("client_001")
-
-  // ── Wellness / behavioural data (Feature 2: Financial Wellness Engine) ────
   const [netWorth, setNetWorth] = useState(0)
   const [wellnessScore, setWellnessScore] = useState(0)
   const [isPulseLoading, setIsPulseLoading] = useState(true)
@@ -63,7 +48,7 @@ export function FinancialPulse() {
   useEffect(() => {
     const fetchWellness = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/wellness`)
+        const res = await fetch("http://127.0.0.1:8000/api/v1/wellness")
         if (!res.ok) throw new Error(`Request failed`)
         const data = await res.json()
         setNetWorth(data.totalNetWorthUSD || 700000)
@@ -79,9 +64,7 @@ export function FinancialPulse() {
     fetchWellness()
   }, [])
 
-  if (isPulseLoading) {
-    return <div className="p-8 text-center animate-pulse text-muted-foreground">Syncing Wealth Data...</div>
-  }
+  if (isPulseLoading) return <div className="p-8 text-center animate-pulse">Syncing...</div>
 
   return (
     <div className="space-y-6">
@@ -93,24 +76,14 @@ export function FinancialPulse() {
               <div className="flex items-center gap-2 text-muted-foreground uppercase tracking-widest font-bold text-[10px]">
                 <TrendingUp className="size-4 text-[#108548]" /> Total Net Worth
               </div>
-              <span className="text-[10px] bg-[#108548]/10 text-[#108548] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">Live</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-              <div>
-                <p className="text-5xl font-bold tracking-tight">${netWorth.toLocaleString()}</p>
-                <div className="flex items-center gap-3 mt-4">
-                  <div className="h-10 w-24">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={trendData}>
-                        <Line type="monotone" dataKey="val" stroke="#108548" strokeWidth={2} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="text-[#108548] font-bold">+12.4%</span> vs last quarter
-                  </p>
+              <p className="text-6xl font-black tracking-tighter">${netWorth.toLocaleString()}</p>
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-24">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trendData}>
+                      <Line type="monotone" dataKey="val" stroke="#108548" strokeWidth={3} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
                 <p className="text-xs font-bold text-[#108548]">+12.4% <span className="text-muted-foreground font-normal">vs last quarter</span></p>
               </div>
@@ -183,94 +156,6 @@ export function FinancialPulse() {
         <DisciplineChart />
         <CoachingNudgeCard />
       </div>
-
-      {/* ── LIVE HOLDINGS TABLE (Feature 1: Unified Wallet) ─────────────── */}
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-2 flex flex-row items-center justify-between">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <Wallet className="size-5 text-[#108548]" />
-            Live Portfolio Holdings
-            <span className="text-[10px] bg-[#108548]/10 text-[#108548] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider ml-1">
-              {walletData?.asset_count ?? 0} assets
-            </span>
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-[10px] font-bold uppercase tracking-wider gap-1.5 text-muted-foreground hover:text-[#108548]"
-            onClick={refetch}
-          >
-            <RefreshCw className="size-3" />
-            Refresh
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {walletError ? (
-            <p className="text-xs text-destructive py-4 text-center">{walletError}</p>
-          ) : isWalletLoading ? (
-            <div className="space-y-3 py-2">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex gap-4 items-center">
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 flex-1" />
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-28" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ticker / Symbol</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Class</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                  <TableHead className="text-right">Live Price</TableHead>
-                  <TableHead className="text-right">Total Value</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(walletData?.holdings ?? []).map((item: WealthWalletItem) => {
-                  const color = ASSET_CLASS_COLORS[item.asset_class] ?? "#888"
-                  return (
-                    <TableRow key={item.asset_id}>
-                      <TableCell className="font-mono font-bold text-sm">
-                        {item.ticker_or_symbol}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">
-                        {item.name}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                          style={{
-                            backgroundColor: color + "22",
-                            color,
-                          }}
-                        >
-                          {item.asset_class}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-sm">
-                        {item.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-sm font-medium">
-                        ${item.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums font-bold">
-                        ${item.total_value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
     </div>
   )
 }
