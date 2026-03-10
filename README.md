@@ -1,24 +1,35 @@
-# Myney: Composable Wealth Wellness Hub
+# 🛡️ Myney: The Wealth Wellness Hub
 
 **Team Name:** XiaoJongBao  
 **Video Pitch:** [Insert YouTube Link Here]
 
-## About The Project
-Myney solves the fragmentation of modern wealth by unifying traditional assets, real estate, and digital holdings into a single, mathematically rigorous dashboard.
+---
 
-## How It Solves the Problem
-Instead of relying on static risk questionnaires, our platform applies institutional quantitative finance models to assess a user's true financial health. 
+## 🚀 About The Project
+**Myney** is a comprehensive **Wealth Wellness Hub** designed to eliminate the fragmentation of modern financial management. By consolidating traditional bank deposits, private equity, commercial real estate, and digital assets into a single **Wealth Wallet**, we provide investors and advisors with a complete, actionable view of total financial health.
 
-Our Python backend uses the Markowitz Mean-Variance framework and Tikhonov regularization to calculate risk-adjusted metrics like the Sharpe Ratio. It actively suggests exact, personalized portfolio rebalancing actions (Buy/Sell orders) to optimize returns. 
+## 💡 How It Solves the Problem
+Myney transforms raw data into **actionable financial intelligence** by unifying fragmented assets into a secure, holistic "Wealth Wallet." We replace static risk questionnaires with institutional-grade quantitative models that analyze diversification, liquidity, and behavioral resilience in real-time. By bridging deterministic math with Generative AI, we visualize complex wealth compositions and provide personalized, scenario-based recommendations that empower users to protect their long-term milestones.
 
-Crucially, Myney features an AI-driven "Macro Stress-Tester." Users can simulate market shocks (e.g., a "Tech Crash"). Our engine bridges deterministic math with Generative AI, using Gemini to perform real-time NLP sentiment analysis on market headlines. It applies dynamic volatility multipliers and explains the portfolio impact in plain English. Myney translates complex quant-level analytics into an intuitive interface, empowering retail clients with institutional-grade financial resilience.
+Our solution delivers an intuitive, dual-sided dashboard that fosters proactive engagement between clients and advisors. Whether simulating a sector-wide "Tech Crash" or quantifying the "Discipline Dividend" of holding firm during market volatility, Myney turns fragmented data into a trusted monitor for total financial resilience.
+## 🛠️ Tech Stack
+* **Frontend:** Next.js 16, Tailwind 4, Shadcn UI, Nivo/Recharts.
+* **Quant & AI (Python):** FastAPI, SciPy, NumPy, Google Gemini API.
+* **Core Services (Java):** Spring Boot 3.4, Java 17, Maven.
+* **State & Logic:** Zustand 5, TypeScript 5, Zod.
 
-## Technologies Used
-* **Backend:** Python (FastAPI), SciPy (SLSQP Optimizer), NumPy, Pandas
-* **Frontend:** Next.js, React, Tailwind CSS (v4), Shadcn UI, Recharts
-* **AI Integration:** Google Gemini API (NLP Sentiment & Generative Insights)
-* **Design:** v0.dev
+## 📈 Quantitative Framework
+* **Portfolio Optimization:** Markowitz Mean-Variance Framework & Sharpe Ratio.
+* **Risk Modeling:** Tikhonov regularization for market shock simulations.
+* **Behavioral Metrics:** Real-time correlation matrices & Stability Ratio (0–1.0).
 
+## 🧠 Core Features
+* **Multi-Asset Consolidation:** Unifies Private Equity, Commercial Real Estate, and Digital Assets into a single, mathematically rigorous "Wealth Wallet."
+* **Behavioral DNA & Stability Tracking:** Quantifies emotional discipline with a live **Stability Ratio (0–1.0)** and interactive radar mapping of psychological resilience.
+* **Behavioral Alpha Tracker:** A **"Discipline Dividend"** engine that visualizes the exact profit gained by holding firm through market noise vs. emotional panic-selling.
+* **Macro Stress-Tester:** Simulates systemic shocks (e.g., Tech Crashes or Rate Hikes) to predict the impact on long-term net worth and life milestones.
+* **MVO-Driven Optimization:** An algorithmic rebalancing engine using **Mean-Variance Optimization** to pull "stretched" portfolios into a balanced, resilient state.
+* **Advisor Triage Hub:** A professional command center for managers to monitor client **Wellness Scores** and push personalized rebalancing proposals with one click.
 ---
 
 ## Getting Started
@@ -35,20 +46,20 @@ Follow these steps to run the Myney application locally. You will need two termi
 
 ---
 
-## Local Development
-If you prefer to run the application locally to inspect the architecture, follow these steps. 
+## 💻 Local Development
+Follow these steps to run the Myney ecosystem locally. You will need three terminal windows to run the full stack.
 
 ### Prerequisites
-* Python 3.9+
-* Node.js (v18+)
-* A Google Gemini API Key
+* **Python 3.9+** & **Java 17+**
+* **Node.js v18+**
+* **Google Gemini API Key**
 
 ### 1. Start the Backend (FastAPI Engine)
 Open your first terminal and navigate to your backend folder:
 
 ```bash
 # Install the required quantitative and server libraries
-pip install fastapi uvicorn scipy numpy pandas pydantic google-generativeai
+-r requirements.txt
 
 # Start the Uvicorn server
 python -m uvicorn main:app --reload
@@ -66,5 +77,5 @@ npm install
 # Start the development server
 npm run dev
 ```
-
 The Myney dashboard will be live at http://localhost:3000.
+
