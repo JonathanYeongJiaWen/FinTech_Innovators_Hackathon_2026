@@ -9,3 +9,4 @@ python-dotenv
 yfinance
 python-jose[cryptography]
 passlib[bcrypt]
+gunicorn
