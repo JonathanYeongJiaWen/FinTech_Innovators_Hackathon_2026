@@ -100,3 +100,13 @@ class ScenarioResult(BaseModel):
 class ScenariosResponse(BaseModel):
     results: list[ScenarioResult]
 
+
+class CoachingNudgeRequest(BaseModel):
+    userReturnPct: float
+    benchmarkReturnPct: float
+
+
+class CoachingNudgeResponse(BaseModel):
+    type: str   # "positive" | "warning" | "neutral"
+    message: str
+

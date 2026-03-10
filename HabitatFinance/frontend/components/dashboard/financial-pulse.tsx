@@ -33,6 +33,7 @@ import { LifeMilestones } from "@/components/dashboard/life-milestones"
 import { ResilienceBreakdown, MOCK_RESILIENCE_DATA } from "@/components/dashboard/resilience-breakdown"
 import { DisciplineChart } from "@/components/dashboard/discipline-chart"
 import { CoachingNudgeCard } from "@/components/dashboard/coaching-nudge-card"
+import type { CoachingNudge } from "@/components/dashboard/coaching-nudge-card"
 
 const trendData = [{ val: 20 }, { val: 25 }, { val: 22 }, { val: 30 }, { val: 28 }, { val: 28.2 }]
 
@@ -53,6 +54,8 @@ export function FinancialPulse() {
     digitalAssetsWeight: 0.16,
     interpretation: "Highly Correlated"
   })
+
+  const [coachingNudge, setCoachingNudge] = useState<CoachingNudge | null>(null)
 
   const isHighRisk = synergy.correlationCoefficient > 0.7;
   const circumference = 2 * Math.PI * 70
@@ -89,6 +92,32 @@ export function FinancialPulse() {
       setNetWorth(walletData.total_value_usd)
     }
   }, [walletData])
+
+  // Fetch data-driven coaching nudge based on the discipline chart's actual
+  // return figures (ALL_DATA: Jan '25 → Mar '26).
+  useEffect(() => {
+    const CHART_START       = 215_000
+    const CHART_END_USER    = 296_100
+    const CHART_END_BENCH   = 261_800
+    const userReturnPct     = ((CHART_END_USER  - CHART_START) / CHART_START) * 100
+    const benchmarkReturnPct = ((CHART_END_BENCH - CHART_START) / CHART_START) * 100
+
+    const fetchNudge = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/wellness/coaching-nudge`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userReturnPct, benchmarkReturnPct }),
+        })
+        if (!res.ok) throw new Error("Nudge fetch failed")
+        const data = await res.json()
+        setCoachingNudge({ type: data.type, message: data.message })
+      } catch {
+        // On failure keep coachingNudge null so the card shows its default
+      }
+    }
+    fetchNudge()
+  }, [])
 
   if (isPulseLoading) return <div className="p-8 text-center animate-pulse">Syncing...</div>
 
@@ -341,7 +370,7 @@ export function FinancialPulse() {
           <DisciplineChart />
         </div>
         <div className="lg:col-span-1">
-          <CoachingNudgeCard />
+          <CoachingNudgeCard nudge={coachingNudge ?? undefined} />
         </div>
       </div>
     </div>

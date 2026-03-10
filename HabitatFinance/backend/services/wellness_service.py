@@ -21,6 +21,8 @@ from schemas.wellness_schema import (
     ScenariosResponse,
     ScenarioResult,
     PROPERTY_LABELS,
+    CoachingNudgeRequest,
+    CoachingNudgeResponse,
 )
 
 DATA_PATH = Path(__file__).parent.parent / "mock_database.json"
@@ -374,4 +376,188 @@ async def evaluate_scenarios(request: ScenariosRequest) -> ScenariosResponse:
         )
 
     return ScenariosResponse(results=results)
+
+
+# ---------------------------------------------------------------------------
+# Thresholds for behavior classification
+# The baseline (dashed line) represents ZERO trades — a pure passive hold.
+# Any trade count > 0 means the user deviated from the baseline.
+# ---------------------------------------------------------------------------
+_HIGH_TURNOVER_THRESHOLD = 10  # ≥10 trades/30 d → Active Trading
+# 0 trades     → Buy-and-Hold  (perfectly matched the zero-trade baseline)
+# 1–9 trades   → Low-Activity  (minor rebalancing that deviated from baseline)
+# ≥10 trades   → Active Trading
+
+
+# ---------------------------------------------------------------------------
+# Service: Behavioral Alpha Coaching Nudge
+# ---------------------------------------------------------------------------
+
+async def generate_coaching_nudge(request: CoachingNudgeRequest) -> CoachingNudgeResponse:
+    """
+    Generates a data-driven Wealth Coach Insight for the Behavioral Alpha
+    Tracking chart.  Behavior classification is derived from the trade history
+    in mock_database.json.  Gemini is used when behavior is deterministic;
+    if behavior is ambiguous or the LLM is unavailable the function returns a
+    rule-based mathematical comparison instead of guessing the narrative.
+    """
+    # -------------------------------------------------------------------
+    # 1. Read trade history to classify user behavior
+    # -------------------------------------------------------------------
+    try:
+        with open(DATA_PATH, "r", encoding="utf-8-sig") as f:
+            raw = json.load(f)
+        data = raw.get("_legacy", raw)
+        trade_history = data.get("tradeHistory", {})
+        total_trades = int(trade_history.get("totalTradesLast30d", -1))
+    except Exception:
+        total_trades = -1
+
+    user_ret = request.userReturnPct
+    bench_ret = request.benchmarkReturnPct
+    delta = user_ret - bench_ret
+    nudge_type = "positive" if delta >= 0 else "warning"
+
+    # -------------------------------------------------------------------
+    # 2. Classify behavior
+    #    0 trades  → Buy-and-Hold  (user mirrored the zero-trade baseline)
+    #    1–9       → Low-Activity  (minor rebalancing; deviated from baseline)
+    #    ≥10       → Active Trading
+    #    unknown   → ambiguous (data unavailable)
+    # -------------------------------------------------------------------
+    if total_trades < 0:
+        behavior = "ambiguous"
+    elif total_trades == 0:
+        behavior = "Buy-and-Hold"
+    elif total_trades < _HIGH_TURNOVER_THRESHOLD:
+        behavior = "Low-Activity"
+    else:
+        behavior = "Active Trading"
+
+    # -------------------------------------------------------------------
+    # 3. Fallback: ambiguous behavior → pure mathematical comparison
+    #    (LLM must NOT guess a behavioral narrative when data is unclear)
+    # -------------------------------------------------------------------
+    if behavior == "ambiguous":
+        delta_word = "above" if delta >= 0 else "below"
+        msg = (
+            f"Your portfolio returned {user_ret:+.1f}% over the selected period versus "
+            f"{bench_ret:+.1f}% for the buy-and-hold benchmark — a {abs(delta):.1f}% "
+            f"differential {delta_word} the baseline. "
+            f"The available trade data does not clearly indicate a single behavioral "
+            f"pattern, so this gap reflects the net mathematical effect of your "
+            f"allocation and timing choices rather than a specific identifiable behavior."
+        )
+        return CoachingNudgeResponse(type=nudge_type, message=msg)
+
+    # -------------------------------------------------------------------
+    # 4. Build strict LLM system + user prompt
+    # -------------------------------------------------------------------
+    system_instructions = (
+        "You are a quantitative behavioral finance coach producing a single Wealth Coach Insight.\n\n"
+        "CONTEXT: The baseline (dashed line) represents a ZERO-trade, pure passive portfolio. "
+        "Any trade count > 0 means the user deviated from that baseline.\n\n"
+        "STRICT RULES — you MUST follow all of them:\n"
+        "1. Base your explanation ONLY on the exact figures and the behavior_classification "
+        "provided. Do not use any external knowledge or assumptions.\n"
+        "2. FORBIDDEN: inventing, guessing, or implying any behavioral cause that is NOT "
+        "explicitly present in the metrics below.\n"
+        "3. If behavior_classification is 'Buy-and-Hold', the user made ZERO trades and "
+        "perfectly mirrored the passive baseline. Your explanation MUST centre on the user "
+        "doing nothing — no rebalancing, no timing decisions. You are FORBIDDEN from "
+        "saying the user 'outperformed the buy-and-hold baseline' because they ARE the "
+        "baseline. Instead explain how their allocation mix relative to the benchmark "
+        "weights drove the delta.\n"
+        "4. If behavior_classification is 'Low-Activity', the user made a small number of "
+        "trades that caused minor deviation from the zero-trade baseline. Your explanation "
+        "MUST focus on how those few rebalancing moves contributed to (or detracted from) "
+        "performance versus the passive baseline. You are FORBIDDEN from calling the user "
+        "a 'buy-and-hold investor' or saying they 'held their positions without trading'.\n"
+        "5. If behavior_classification is 'Active Trading', your explanation MUST centre "
+        "on the user's frequent discretionary decisions and how they helped or hurt versus "
+        "the zero-trade baseline. You are FORBIDDEN from stating the user 'held', "
+        "'stayed the course', or 'avoided selling'.\n"
+        "6. The sign of performance_delta determines tone: positive → outperformance "
+        "narrative; negative → underperformance narrative. Mirror the sign exactly.\n"
+        "7. Write exactly 2–3 sentences. Be specific with the numbers given.\n"
+        "8. Output ONLY the plain-text insight. No JSON, no markdown, no bullet points."
+    )
+
+    user_prompt = (
+        f"Generate a Wealth Coach Insight using ONLY these verified facts:\n"
+        f"  user_return_pct         = {user_ret:+.2f}%\n"
+        f"  benchmark_return_pct    = {bench_ret:+.2f}%\n"
+        f"  performance_delta       = {delta:+.2f}%\n"
+        f"  trades_in_period        = {max(total_trades, 0)}\n"
+        f"  behavior_classification = {behavior}\n\n"
+        f"The benchmark is a ZERO-trade passive portfolio. "
+        f"Follow every system rule strictly. Any deviation is a critical error."
+    )
+
+    # -------------------------------------------------------------------
+    # 5. LLM call (Gemini) with fallback to deterministic rule-based text
+    # -------------------------------------------------------------------
+    if os.getenv("GEMINI_API_KEY"):
+        try:
+            response = await client.aio.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=f"{system_instructions}\n\n{user_prompt}",
+            )
+            message = (response.text or "").strip()
+            if message:
+                return CoachingNudgeResponse(type=nudge_type, message=message)
+        except Exception:
+            pass  # fall through to rule-based fallback
+
+    # Rule-based fallback (LLM unavailable or returned empty)
+    if behavior == "Buy-and-Hold":
+        # User made zero trades — they ARE the zero-trade baseline by definition.
+        # The delta here reflects allocation mix differences, not trading activity.
+        if delta >= 0:
+            msg = (
+                f"You made no trades during the period, mirroring a passive strategy. "
+                f"Your portfolio returned {user_ret:+.1f}% versus the {bench_ret:+.1f}% "
+                f"zero-trade benchmark — a +{delta:.1f}% gap driven entirely by your "
+                f"initial asset allocation weights rather than any trading decisions."
+            )
+        else:
+            msg = (
+                f"You made no trades during the period, so the {delta:.1f}% gap between "
+                f"your {user_ret:+.1f}% return and the {bench_ret:+.1f}% zero-trade "
+                f"baseline reflects a difference in initial allocation weights, not "
+                f"any trading activity."
+            )
+    elif behavior == "Low-Activity":
+        # User made 1–9 trades — minor deviations from the zero-trade baseline.
+        if delta >= 0:
+            msg = (
+                f"Your {total_trades} rebalancing move(s) generated a {user_ret:+.1f}% "
+                f"return, outpacing the zero-trade baseline by +{delta:.1f}% "
+                f"({bench_ret:+.1f}%). Those selective adjustments added measurable "
+                f"value over simply holding the original allocation."
+            )
+        else:
+            msg = (
+                f"Your {total_trades} rebalancing move(s) resulted in a {user_ret:+.1f}% "
+                f"return, falling {abs(delta):.1f}% short of the zero-trade baseline's "
+                f"{bench_ret:+.1f}%. The timing or direction of those moves detracted "
+                f"from what a completely passive hold would have achieved."
+            )
+    else:  # Active Trading
+        if delta >= 0:
+            msg = (
+                f"Your active trading decisions generated a {user_ret:+.1f}% return, "
+                f"outpacing the zero-trade baseline by +{delta:.1f}% ({bench_ret:+.1f}%). "
+                f"Your discretionary timing and asset selection added measurable value "
+                f"over the fully passive alternative."
+            )
+        else:
+            msg = (
+                f"Active trading across the period resulted in a {user_ret:+.1f}% return, "
+                f"falling {abs(delta):.1f}% short of the zero-trade baseline's "
+                f"{bench_ret:+.1f}%. Transaction friction and timing decisions reduced "
+                f"returns relative to simply holding the original allocation."
+            )
+
+    return CoachingNudgeResponse(type=nudge_type, message=msg)
 

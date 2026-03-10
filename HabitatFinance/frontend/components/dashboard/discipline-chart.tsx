@@ -114,7 +114,7 @@ export function DisciplineChart() {
             <ShadTooltip>
               <TooltipTrigger asChild>
                 <Label htmlFor="baseline-toggle" className="text-xs font-normal text-muted-foreground cursor-pointer border-b border-dashed border-muted-foreground/40">
-                  Compare to Average Investor
+                  Compare to Baseline
                 </Label>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs">
