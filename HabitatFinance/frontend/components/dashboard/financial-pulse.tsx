@@ -151,10 +151,14 @@ export function FinancialPulse() {
         </div>
       </div>
 
-      {/* ROW 5: The Profit (50/50 Split) */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <DisciplineChart />
-        <CoachingNudgeCard />
+      {/* ROW 5: The Profit - REFACTORED TO 2:1 RATIO */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <DisciplineChart />
+        </div>
+        <div className="lg:col-span-1">
+          <CoachingNudgeCard />
+        </div>
       </div>
     </div>
   )
