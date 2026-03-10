@@ -8,13 +8,14 @@
 * **Backend API Docs (Swagger):** [Myney Backend](https://myney.azurewebsites.net/docs)
 ---
 
-## 🚀 About The Project
-**Myney** is a comprehensive **Wealth Wellness Hub** designed to eliminate the fragmentation of modern financial management. By consolidating traditional bank deposits, private equity, commercial real estate, and digital assets into a single **Wealth Wallet**, we provide investors and advisors with a complete, actionable view of total financial health.
+## 📝 What is Myney ? 
+Myney is an integrated **Wealth Wellness Hub** that eliminates financial fragmentation by unifying bank deposits, private equity, and digital assets into a singular, secure Wealth Wallet. While common trackers offer only static observations, Myney stands out by utilizing institutional-grade Mean-Variance Optimization (MVO) to mathematically ensure portfolio resilience.
 
-## 💡 How It Solves the Problem
-Myney transforms raw data into **actionable financial intelligence** by unifying fragmented assets into a secure, holistic "Wealth Wallet." We replace static risk questionnaires with institutional-grade quantitative models that analyze diversification, liquidity, and behavioral resilience in real-time. By bridging deterministic math with Generative AI, we visualize complex wealth compositions and provide personalized, scenario-based recommendations that empower users to protect their long-term milestones.
+Our platform introduces the unique **Behavioral Alpha Tracker**, which quantifies the "Discipline Dividend"—measuring the actual profit gained by holding firm through market noise. Additionally, our **Macro Stress-Tester** goes beyond news alerts to simulate systemic shocks, predicting real-world impacts on life milestones.
 
-Our solution delivers an intuitive, dual-sided dashboard that fosters proactive engagement between clients and advisors. Whether simulating a sector-wide "Tech Crash" or quantifying the "Discipline Dividend" of holding firm during market volatility, Myney turns fragmented data into a trusted monitor for total financial resilience.
+Built on a **fault-tolerant architecture** (FastAPI & Spring Boot) with a resilient failover layer, Myney bridges the gap between deterministic financial math and Generative AI. It empowers investors and advisors to move beyond data collection into active, algorithmic defense of their total financial health.
+---
+
 ## 🛠️ Tech Stack
 * **Frontend:** Next.js 16, Tailwind 4, Shadcn UI, Nivo/Recharts.
 * **Quant & AI (Python):** FastAPI, SciPy, NumPy, Google Gemini API.
@@ -33,7 +34,15 @@ Our solution delivers an intuitive, dual-sided dashboard that fosters proactive 
 * **Macro Stress-Tester:** Simulates systemic shocks (e.g., Tech Crashes or Rate Hikes) to predict the impact on long-term net worth and life milestones.
 * **MVO-Driven Optimization:** An algorithmic rebalancing engine using Mean-Variance Optimization to pull "stretched" portfolios into a balanced, resilient state.
 * **Advisor Triage Hub:** A professional command center for managers to monitor client Wellness Scores and push personalized rebalancing proposals with one click.
+* 
+## 📈 Market Potential & Scalability
+* **Target Audience:** High-Net-Worth Individuals (HNIs) with fragmented portfolios and "Gen Z" retail investors entering the digital asset space.
+* **B2B2C Opportunity:** White-label potential for wealth management firms to offer the Advisor Triage Hub to their clients, enhancing proactive engagement.
+* **Scalability:** Built on a microservices-ready architecture (FastAPI + Spring Boot), allowing for easy integration with future Open Finance APIs like SGFinDex
 
+## 🛡️ Feasibility & Compliance
+* **Regulatory Alignment:** Designed with MAS (Monetary Authority of Singapore) Guidelines on Individual Accountability and Conduct in mind, ensuring transparency in "AI Analysis".
+* **Data Security:** Implements Zod-based schema validation and Java-side security protocols to ensure the integrity of the "Wealth Wallet".
 ---
 
 ## 💻 Local Development
