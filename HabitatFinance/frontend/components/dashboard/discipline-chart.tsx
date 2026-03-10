@@ -22,22 +22,24 @@ import {
 import { cn } from "@/lib/utils"
 
 /* ── mock time-series data (15 months: Jan 2025 → Mar 2026) ── */
+// Story: user panic-sells during the Aug '25 drawdown, misses the recovery,
+// and ends significantly below the zero-trade passive baseline.
 const ALL_DATA = [
   { month: "Jan '25", actual: 215000, baseline: 215000, year: 2025, idx: 0 },
-  { month: "Feb '25", actual: 221000, baseline: 217500, year: 2025, idx: 1 },
-  { month: "Mar '25", actual: 218500, baseline: 219000, year: 2025, idx: 2 },
-  { month: "Apr '25", actual: 226000, baseline: 221000, year: 2025, idx: 3 },
-  { month: "May '25", actual: 235000, baseline: 224500, year: 2025, idx: 4 },
-  { month: "Jun '25", actual: 248000, baseline: 228000, year: 2025, idx: 5 },
-  { month: "Jul '25", actual: 254300, baseline: 231200, year: 2025, idx: 6 },
-  { month: "Aug '25", actual: 241800, baseline: 233500, year: 2025, idx: 7 },
-  { month: "Sep '25", actual: 259400, baseline: 237800, year: 2025, idx: 8 },
-  { month: "Oct '25", actual: 263100, baseline: 241600, year: 2025, idx: 9 },
-  { month: "Nov '25", actual: 271500, baseline: 245900, year: 2025, idx: 10 },
-  { month: "Dec '25", actual: 268200, baseline: 249400, year: 2025, idx: 11 },
-  { month: "Jan '26", actual: 279800, baseline: 253100, year: 2026, idx: 12 },
-  { month: "Feb '26", actual: 288400, baseline: 257300, year: 2026, idx: 13 },
-  { month: "Mar '26", actual: 296100, baseline: 261800, year: 2026, idx: 14 },
+  { month: "Feb '25", actual: 224000, baseline: 217500, year: 2025, idx: 1 },
+  { month: "Mar '25", actual: 229000, baseline: 219000, year: 2025, idx: 2 },
+  { month: "Apr '25", actual: 235500, baseline: 221000, year: 2025, idx: 3 },
+  { month: "May '25", actual: 241000, baseline: 224500, year: 2025, idx: 4 },
+  { month: "Jun '25", actual: 247000, baseline: 228000, year: 2025, idx: 5 },
+  { month: "Jul '25", actual: 251000, baseline: 231200, year: 2025, idx: 6 },
+  { month: "Aug '25", actual: 224000, baseline: 233500, year: 2025, idx: 7 },
+  { month: "Sep '25", actual: 228500, baseline: 247800, year: 2025, idx: 8 },
+  { month: "Oct '25", actual: 232000, baseline: 255600, year: 2025, idx: 9 },
+  { month: "Nov '25", actual: 236000, baseline: 261900, year: 2025, idx: 10 },
+  { month: "Dec '25", actual: 239500, baseline: 267400, year: 2025, idx: 11 },
+  { month: "Jan '26", actual: 243000, baseline: 271100, year: 2026, idx: 12 },
+  { month: "Feb '26", actual: 246500, baseline: 275300, year: 2026, idx: 13 },
+  { month: "Mar '26", actual: 249800, baseline: 279500, year: 2026, idx: 14 },
 ]
 
 type TimeRange = "1M" | "6M" | "1Y" | "YTD" | "ALL"

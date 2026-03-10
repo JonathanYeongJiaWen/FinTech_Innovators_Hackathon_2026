@@ -97,8 +97,8 @@ export function FinancialPulse() {
   // return figures (ALL_DATA: Jan '25 → Mar '26).
   useEffect(() => {
     const CHART_START       = 215_000
-    const CHART_END_USER    = 296_100
-    const CHART_END_BENCH   = 261_800
+    const CHART_END_USER    = 249_800
+    const CHART_END_BENCH   = 279_500
     const userReturnPct     = ((CHART_END_USER  - CHART_START) / CHART_START) * 100
     const benchmarkReturnPct = ((CHART_END_BENCH - CHART_START) / CHART_START) * 100
 

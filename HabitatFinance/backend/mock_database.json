@@ -140,10 +140,10 @@
     "sp500Return30d": -0.02
   },
   "tradeHistory": {
-    "totalTradesLast30d": 2,
-    "panicSellsLast30d": 0,
-    "heldDuringDrop": true,
-    "largestDrawdownWithoutSell": 0.05
+    "totalTradesLast30d": 12,
+    "panicSellsLast30d": 4,
+    "heldDuringDrop": false,
+    "largestDrawdownWithoutSell": 0.02
   },
   "dailyReturns": {
     "equities": [0.012, -0.008, 0.015, -0.022, 0.018, 0.005, -0.010, 0.020, -0.015, 0.008, 0.013, -0.018, 0.025, -0.012, 0.009, 0.016, -0.020, 0.011, 0.007, -0.013, 0.022, -0.009, 0.014, 0.008, -0.016, 0.019, -0.011, 0.013, 0.006, -0.014],
