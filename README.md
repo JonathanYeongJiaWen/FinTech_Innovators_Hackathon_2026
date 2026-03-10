@@ -25,11 +25,11 @@ Our solution delivers an intuitive, dual-sided dashboard that fosters proactive 
 
 ## 🧠 Core Features
 * **Multi-Asset Consolidation:** Unifies Private Equity, Commercial Real Estate, and Digital Assets into a single, mathematically rigorous "Wealth Wallet."
-* **Behavioral DNA & Stability Tracking:** Quantifies emotional discipline with a live **Stability Ratio (0–1.0)** and interactive radar mapping of psychological resilience.
-* **Behavioral Alpha Tracker:** A **"Discipline Dividend"** engine that visualizes the exact profit gained by holding firm through market noise vs. emotional panic-selling.
+* **Behavioral DNA & Stability Tracking:** Quantifies emotional discipline with a live Stability Ratio (0–1.0) and interactive radar mapping of psychological resilience.
+* **Behavioral Alpha Tracker:** A "Discipline Dividend" engine that visualizes the exact profit gained by holding firm through market noise vs. emotional panic-selling.
 * **Macro Stress-Tester:** Simulates systemic shocks (e.g., Tech Crashes or Rate Hikes) to predict the impact on long-term net worth and life milestones.
-* **MVO-Driven Optimization:** An algorithmic rebalancing engine using **Mean-Variance Optimization** to pull "stretched" portfolios into a balanced, resilient state.
-* **Advisor Triage Hub:** A professional command center for managers to monitor client **Wellness Scores** and push personalized rebalancing proposals with one click.
+* **MVO-Driven Optimization:** An algorithmic rebalancing engine using Mean-Variance Optimization to pull "stretched" portfolios into a balanced, resilient state.
+* **Advisor Triage Hub:** A professional command center for managers to monitor client Wellness Scores and push personalized rebalancing proposals with one click.
 ---
 
 ## Live Demo
@@ -44,26 +44,37 @@ Follow these steps to run the Myney application locally. You will need three ter
 ### Prerequisites
 * Python 3.9+ & Java 17+
 * Node.js (v18+)
-* A Google Gemini API Key
+* A Google Gemini API Key [Get one here](https://aistudio.google.com/u/1/)
 
-### 1. Start the Backend (FastAPI Engine)
+### 1. Create and activate a virtual environment
 Open your first terminal and navigate to your backend folder:
 
 ```bash
-# Install the required quantitative and server libraries
--r requirements.txt
+# Navigate to backend directory
+In your file explorer, Right-Click the backend folder and select "Open in Integrated Terminal".
 
-# Start the Uvicorn server
+# Setup Virtual Environment
+# Windows:
+python -m venv venv && venv\Scripts\activate
+# Mac/Linux:
+python3 -m venv venv && source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Create environment variables
+echo "GEMINI_API_KEY=your_key_here" > .env
+
+# Start the server
 python -m uvicorn main:app --reload
 ```
 
-### 2. Start the Frontend (Next.js UI)
-Open your second terminal and navigate to the frontend folder:
-
+### 2. Frontend Setup (Next.js)
 ```bash
-cd frontend
+# Navigate to frontend directory
+In your file explorer, Right-Click the frontend folder and select "Open in Integrated Terminal"
 
-# Install the Next.js dependencies
+# Install dependencies
 npm install
 
 # Start the development server
