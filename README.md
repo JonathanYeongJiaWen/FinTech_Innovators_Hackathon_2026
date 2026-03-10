@@ -14,6 +14,7 @@ Myney is an integrated **Wealth Wellness Hub** that eliminates financial fragmen
 Our platform introduces the unique **Behavioral Alpha Tracker**, which quantifies the "Discipline Dividend"—measuring the actual profit gained by holding firm through market noise. Additionally, our **Macro Stress-Tester** goes beyond news alerts to simulate systemic shocks, predicting real-world impacts on life milestones.
 
 Built on a **fault-tolerant architecture** (FastAPI & Spring Boot) with a resilient failover layer, Myney bridges the gap between deterministic financial math and Generative AI. It empowers investors and advisors to move beyond data collection into active, algorithmic defense of their total financial health.
+
 ---
 
 ## 🛠️ Tech Stack
@@ -34,7 +35,7 @@ Built on a **fault-tolerant architecture** (FastAPI & Spring Boot) with a resili
 * **Macro Stress-Tester:** Simulates systemic shocks (e.g., Tech Crashes or Rate Hikes) to predict the impact on long-term net worth and life milestones.
 * **MVO-Driven Optimization:** An algorithmic rebalancing engine using Mean-Variance Optimization to pull "stretched" portfolios into a balanced, resilient state.
 * **Advisor Triage Hub:** A professional command center for managers to monitor client Wellness Scores and push personalized rebalancing proposals with one click.
-* 
+  
 ## 📈 Market Potential & Scalability
 * **Target Audience:** High-Net-Worth Individuals (HNIs) with fragmented portfolios and "Gen Z" retail investors entering the digital asset space.
 * **B2B2C Opportunity:** White-label potential for wealth management firms to offer the Advisor Triage Hub to their clients, enhancing proactive engagement.
