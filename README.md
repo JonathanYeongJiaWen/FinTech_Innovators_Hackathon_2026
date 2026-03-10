@@ -32,14 +32,6 @@ Our solution delivers an intuitive, dual-sided dashboard that fosters proactive 
 * **Advisor Triage Hub:** A professional command center for managers to monitor client **Wellness Scores** and push personalized rebalancing proposals with one click.
 ---
 
-## Getting Started
-Follow these steps to run the Myney application locally. You will need two terminal windows open—one for the Python math engine and one for the Next.js frontend.
-
-### Prerequisites
-* Python 3.9+
-* Node.js (v18+)
-* A Google Gemini API Key
-
 ## Live Demo
 * **Frontend Application:** [Insert Vercel/Cloudflare Link Here]
 * **Backend API Docs (Swagger):** [Insert Render/Azure Link Here]/docs
@@ -47,12 +39,12 @@ Follow these steps to run the Myney application locally. You will need two termi
 ---
 
 ## 💻 Local Development
-Follow these steps to run the Myney ecosystem locally. You will need three terminal windows to run the full stack.
+Follow these steps to run the Myney application locally. You will need three terminal windows to run the full stack.
 
 ### Prerequisites
-* **Python 3.9+** & **Java 17+**
-* **Node.js v18+**
-* **Google Gemini API Key**
+* Python 3.9+ & Java 17+
+* Node.js (v18+)
+* A Google Gemini API Key
 
 ### 1. Start the Backend (FastAPI Engine)
 Open your first terminal and navigate to your backend folder:
