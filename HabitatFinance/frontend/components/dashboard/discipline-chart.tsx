@@ -96,15 +96,15 @@ export function DisciplineChart() {
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold flex items-center justify-between">
+        <CardTitle className="text-base font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <TrendingUp className="size-5 text-blue-600" />
+            <TrendingUp className="size-5" />
             Behavioral Alpha Tracking
             <ShadTooltip>
               <TooltipTrigger asChild>
                 <Info className="size-4 text-muted-foreground cursor-help" />
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
+              <TooltipContent side="bottom" className="max-w-xs text-xs">
                 Behavioral Alpha measures the value added or lost due to active trading decisions compared to a disciplined buy-and-hold strategy.
               </TooltipContent>
             </ShadTooltip>

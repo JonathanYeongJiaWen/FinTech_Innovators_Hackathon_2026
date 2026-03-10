@@ -14,7 +14,6 @@ export default function Page() {
 
       <main className="mx-auto w-full max-w-7xl px-6 py-10">
         {viewMode === "client" ? (
-          /* ✅ ONLY render FinancialPulse here. It handles its own internal layout. */
           <FinancialPulse />
         ) : (
           <AdvisorDashboard />

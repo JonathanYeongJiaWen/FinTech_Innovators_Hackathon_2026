@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useMilestoneStore, type ScenarioResult } from "@/lib/milestone-store"
 import { LiquidityReadiness } from "@/components/dashboard/liquidity-readiness"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { API_BASE } from "@/lib/api"
 import {
@@ -121,36 +121,32 @@ export function LifeMilestones() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Target className="size-5 text-[#108548]" />
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <Target className="size-5" />
             Life Milestones &amp; Scenarios
             <Tooltip>
               <TooltipTrigger asChild>
                 <Info className="size-4 text-muted-foreground cursor-help" />
               </TooltipTrigger>
-              <TooltipContent side="right" className="max-w-xs">
+              <TooltipContent side="right" className="max-w-xs text-xs">
                 Track your progress towards major life goals and see how simulated market shocks could impact your timeline.
               </TooltipContent>
             </Tooltip>
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Plan ahead for major goals and stress-test against financial shocks.
-          </p>
+          </CardTitle>
+          <Button
+            size="sm"
+            className="gap-2 h-8 text-[10px] font-bold uppercase tracking-wider"
+            onClick={() => setDialogOpen(true)}
+          >
+            <Plus className="size-3" /> Add Scenario
+          </Button>
         </div>
-        <Button
-          size="sm"
-          className="gap-2 h-8 text-[10px] font-bold uppercase tracking-wider"
-          onClick={() => setDialogOpen(true)}
-        >
-          <Plus className="size-3" /> Add Scenario
-        </Button>
-      </div>
-
-      {/* Scenario Cards Grid */}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Scenario Cards Grid */}
       {scenarios.length === 0 ? (
         <Card className="border-dashed bg-card/50">
           <CardContent className="py-10 flex flex-col items-center justify-center text-center">
@@ -293,6 +289,7 @@ export function LifeMilestones() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

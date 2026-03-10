@@ -46,8 +46,8 @@ export function CoachingNudgeCard({ nudge = defaultNudge }: { nudge?: CoachingNu
   return (
     <Card className={`${style.bg} ${style.border}`}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <Brain className="size-5 text-muted-foreground" />
+        <CardTitle className="text-base font-bold uppercase tracking-widest text-[#108548] flex items-center gap-2">
+          <Brain className="size-5" />
           Wealth Coach Insight
         </CardTitle>
       </CardHeader>

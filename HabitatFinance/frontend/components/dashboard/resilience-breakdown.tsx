@@ -9,7 +9,13 @@ import {
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ShieldCheck } from "lucide-react"
+import { ShieldCheck, Info } from "lucide-react" // Added Info icon
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip" // Ensure correct path for your tooltip components
 
 /* ── types ── */
 export interface ResilienceAxis {
@@ -38,11 +44,26 @@ export function ResilienceBreakdown({
   isLoadingInsight,
 }: ResilienceBreakdownProps) {
   return (
-    <Card className="bg-card border-border">
+    <Card className="bg-card border-border h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <ShieldCheck className="size-5 text-emerald-500" />
-          Resilience Breakdown
+        <CardTitle className="text-base font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="size-5 text-[#10b981]" />
+            Resilience Breakdown
+          </div>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="size-3.5 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[250px] text-[11px] leading-relaxed p-3">
+                <p className="font-bold mb-1 uppercase tracking-tighter text-[10px]">Behavioral Analysis</p>
+                This radar maps your psychological profile against market volatility. 
+                Higher scores in <strong>Market Courage</strong> and <strong>Long-Term Vision</strong> indicate a lower likelihood of panic-selling during tech sector corrections.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </CardTitle>
       </CardHeader>
 
@@ -54,7 +75,7 @@ export function ResilienceBreakdown({
               <PolarGrid stroke="hsl(var(--border))" />
               <PolarAngleAxis
                 dataKey="label"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600 }}
               />
               <Radar
                 name="Resilience"
@@ -69,6 +90,7 @@ export function ResilienceBreakdown({
           </ResponsiveContainer>
         </div>
 
+
         {/* AI insight area */}
         {isLoadingInsight ? (
           <div className="space-y-2">
@@ -77,9 +99,9 @@ export function ResilienceBreakdown({
             <Skeleton className="h-4 w-4/6" />
           </div>
         ) : (
-          <div className="rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 px-4 py-3">
-            <p className="text-sm leading-relaxed text-foreground/90">
-              {aiInsightText}
+          <div className="rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 px-4 py-3 mt-auto">
+            <p className="text-[11px] leading-relaxed text-foreground/90 italic">
+              "{aiInsightText}"
             </p>
           </div>
         )}
