@@ -21,20 +21,20 @@ import { RiskSensitivityRadar } from "@/components/dashboard/risk-sensitivity-ra
 import { GlossaryTerm, renderWithGlossary } from "@/components/ui/glossary-term"
 
 // ---------------------------------------------------------------------------
-// Category colour palette - Cleaned and Updated
+// Category colour palette - Cleaned and Fixed
 // ---------------------------------------------------------------------------
 const CATEGORY_COLORS: Record<string, { base: string; shades: string[] }> = {
-Equities: { 
+  Equities: { 
     base: "#4277c3", 
     shades: ["#3d6ba6", "#2b4e72", "#5a8cc2", "#a7c6ed"] 
   },
   Fixed_Income: { 
     base: "#eca1ac", 
-    shades: [ "#e27589", "#eca1ac", "#f9cdd4", "#b25b6e"] 
+    shades: ["#e27589", "#eca1ac", "#f9cdd4", "#b25b6e"] 
   },
   Private_Equity: { 
     base: "#47894b", 
-    shades: ["#aad688", "#  #47894b", "  #47894b"] 
+    shades: ["#aad688", "#47894b", "#2d5a30"] 
   },
   Digital_Assets: { 
     base: "#739bd4", 
@@ -78,10 +78,9 @@ interface TradeRecommendation {
   rationale?: string
 }
 
-// Mock expected‐returns & volatilities per asset class (for building the request)
 const MOCK_PARAMS: Record<string, { ret: number; vol: number }> = {
-  Equities:       { ret: 0.10, vol: 0.20 },
-  Fixed_Income:   { ret: 0.035, vol: 0.02 },
+  Equities: { ret: 0.10, vol: 0.20 },
+  Fixed_Income: { ret: 0.035, vol: 0.02 },
   Private_Equity: { ret: 0.12, vol: 0.15 },
   Digital_Assets: { ret: 0.15, vol: 0.30 },
 }
@@ -125,40 +124,17 @@ function buildLegend(assets: PortfolioAsset[]): { color: string; label: string; 
 }
 
 // ---------------------------------------------------------------------------
-// Recharts custom content / tooltip
+// Custom Treemap Content
 // ---------------------------------------------------------------------------
-interface TreemapContentProps {
-  x?: number
-  y?: number
-  width?: number
-  height?: number
-  name?: string
-  fill?: string
-}
-
-const CustomTreemapContent = ({ x = 0, y = 0, width = 0, height = 0, name = "", fill = "" }: TreemapContentProps) => {
+const CustomTreemapContent = ({ x = 0, y = 0, width = 0, height = 0, name = "", fill = "" }: any) => {
   const showText = width > 40 && height > 30
-
   return (
     <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        style={{
-          fill,
-          stroke: "#fff",
-          strokeWidth: 1,
-        }}
-        rx={4}
-      />
-      {/* Updated with foreignObject for Text Wrapping */}
+      <rect x={x} y={y} width={width} height={height} style={{ fill, stroke: "#fff", strokeWidth: 1 }} rx={4} />
       {showText && (
         <foreignObject x={x} y={y} width={width} height={height}>
           <div className="flex items-center justify-center h-full w-full p-2 overflow-hidden pointer-events-none">
-            <p className="text-[10px] font-bold text-white text-center leading-tight break-words"
-               style={{ textShadow: "0px 1px 2px rgba(0,0,0,0.6)" }}>
+            <p className="text-[10px] font-bold text-white text-center leading-tight break-words" style={{ textShadow: "0px 1px 2px rgba(0,0,0,0.6)" }}>
               {name}
             </p>
           </div>
@@ -175,9 +151,7 @@ const CustomTooltip = ({ active, payload }: any) => {
       <div className="bg-card border border-border rounded-lg p-3 shadow-xl">
         <p className="font-semibold text-foreground">{data.name}</p>
         <p className="text-sm text-muted-foreground">{data.category}</p>
-        <p className="text-sm font-medium text-primary mt-1">
-          ${data.size.toLocaleString()}
-        </p>
+        <p className="text-sm font-medium text-primary mt-1">${data.size.toLocaleString()}</p>
       </div>
     )
   }
@@ -193,21 +167,10 @@ const LegendItem = ({ color, label, value }: { color: string; label: string; val
 )
 
 // ---------------------------------------------------------------------------
-// TradeCard sub-component
+// TradeCard component
 // ---------------------------------------------------------------------------
-function TradeCard({
-  rec,
-  isBuy,
-  isSell,
-  isOptimizing,
-}: {
-  rec: TradeRecommendation
-  isBuy: boolean
-  isSell: boolean
-  isOptimizing: boolean
-}) {
+function TradeCard({ rec, isBuy, isSell, isOptimizing }: { rec: TradeRecommendation, isBuy: boolean, isSell: boolean, isOptimizing: boolean }) {
   const [open, setOpen] = useState(false)
-
   return (
     <div className="rounded-lg border border-border p-4 space-y-2">
       <p className="font-semibold text-sm text-foreground truncate">{rec.asset}</p>
@@ -216,47 +179,24 @@ function TradeCard({
         <span>→</span>
         <span>Optimized {(rec.optimizedWeight * 100).toFixed(1)}%</span>
       </div>
-      <p
-        className={`text-sm font-bold ${
-          isBuy ? "text-emerald-500" : isSell ? "text-rose-500" : "text-muted-foreground"
-        }`}
-      >
-        {rec.action}
-      </p>
-
-      {/* AI Insight toggle */}
+      <p className={`text-sm font-bold ${isBuy ? "text-emerald-500" : isSell ? "text-rose-500" : "text-muted-foreground"}`}>{rec.action}</p>
       <div className="pt-1">
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
-        >
+        <button onClick={() => setOpen((v) => !v)} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors">
           <Brain className="size-3.5" />
-          <span>
-            Algorithmic Rationale
-            <span className="block text-[10px] font-normal text-slate-400 leading-tight">
-              Explanation of our MVO Quantitative model.
-            </span>
-          </span>
-          <ChevronDown
-            className={`size-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-          />
+          <span>Algorithmic Rationale<span className="block text-[10px] font-normal text-slate-400 leading-tight">Explanation of our MVO Quantitative model.</span></span>
+          <ChevronDown className={`size-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
         </button>
-
         {open && (
           <div className="mt-2 rounded-md bg-blue-50/50 dark:bg-blue-950/20 border border-slate-200 dark:border-slate-700 px-3 py-2">
             {rec.rationale ? (
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                {renderWithGlossary(rec.rationale)}
-              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{renderWithGlossary(rec.rationale)}</p>
             ) : isOptimizing ? (
               <div className="space-y-1.5">
                 <div className="h-2.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
                 <div className="h-2.5 w-4/5 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
                 <p className="text-xs text-slate-400 italic pt-0.5">Generating insight…</p>
               </div>
-            ) : (
-              <p className="text-xs text-slate-400 italic">AI insight unavailable.</p>
-            )}
+            ) : <p className="text-xs text-slate-400 italic">AI insight unavailable.</p>}
           </div>
         )}
       </div>
@@ -265,7 +205,7 @@ function TradeCard({
 }
 
 // ---------------------------------------------------------------------------
-// Component
+// Main WealthAnalytics Component
 // ---------------------------------------------------------------------------
 export function WealthAnalytics() {
   const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAsset[]>([])
@@ -274,6 +214,7 @@ export function WealthAnalytics() {
   const [optimizedData, setOptimizedData] = useState<FlatNode[] | null>(null)
   const [tradeRecommendations, setTradeRecommendations] = useState<TradeRecommendation[]>([])
   const [isLiveData, setIsLiveData] = useState<boolean | null>(null)
+  const [reallocatedAsset, setReallocatedAsset] = useState<string>("")
 
   useEffect(() => {
     const fetchAssets = async () => {
@@ -281,102 +222,62 @@ export function WealthAnalytics() {
         const res = await fetch(`${API_BASE}/api/v1/assets`)
         if (!res.ok) throw new Error(`Request failed`)
         const data: BackendAsset[] = await res.json()
-        
         const totalValue = data.reduce((s, a) => s + a.currentValueUSD, 0)
-        
-        // 1. Process and calculate allocation
         let processed = data.map((a) => ({
           ...a,
           allocation: totalValue > 0 ? Math.round((a.currentValueUSD / totalValue) * 1000) / 10 : 0,
         }))
-
-        // 2. STRICT DESCENDING SORT: (b.allocation - a.allocation)
-        // This ensures the 42.4% Private Equity appears at the top
         processed.sort((a, b) => b.allocation - a.allocation)
-        
         setPortfolioAssets(processed)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setIsAnalyticsLoading(false)
-      }
+      } catch (err) { console.error(err) } finally { setIsAnalyticsLoading(false) }
     }
     fetchAssets()
   }, [])
 
-  // -------------------------------------------------------------------------
-  // Optimize handler
-  // -------------------------------------------------------------------------
   const handleOptimize = async () => {
     if (portfolioAssets.length === 0) return
     setIsOptimizing(true)
-    setOptimizedData(null)
-    setTradeRecommendations([])
-    setIsLiveData(null)
 
     const totalValue = portfolioAssets.reduce((s, a) => s + a.currentValueUSD, 0)
     const assetNames = portfolioAssets.map((a) => a.name)
     const currentWeights = portfolioAssets.map((a) => a.currentValueUSD / totalValue)
-    const expectedReturns = portfolioAssets.map(
-      (a) => MOCK_PARAMS[a.assetClass]?.ret ?? 0.08,
-    )
-    const vols = portfolioAssets.map(
-      (a) => MOCK_PARAMS[a.assetClass]?.vol ?? 0.15,
-    )
-
-    // Simple mock covariance: corr = 0.3 off-diagonal
+    const expectedReturns = portfolioAssets.map((a) => MOCK_PARAMS[a.assetClass]?.ret ?? 0.08)
+    const vols = portfolioAssets.map((a) => MOCK_PARAMS[a.assetClass]?.vol ?? 0.15)
+    
     const n = assetNames.length
     const covMatrix: number[][] = Array.from({ length: n }, (_, i) =>
-      Array.from({ length: n }, (_, j) =>
-        i === j ? vols[i] ** 2 : 0.3 * vols[i] * vols[j],
-      ),
+      Array.from({ length: n }, (_, j) => i === j ? vols[i] ** 2 : 0.3 * vols[i] * vols[j])
     )
 
     try {
-      const res = await fetch(
-        `${API_BASE}/api/v1/optimize-portfolio`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            asset_names: assetNames,
-            current_weights: currentWeights,
-            expected_returns: expectedReturns,
-            covariance_matrix: covMatrix,
-          }),
-        },
-      )
+      const res = await fetch(`${API_BASE}/api/v1/optimize-portfolio`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ asset_names: assetNames, current_weights: currentWeights, expected_returns: expectedReturns, covariance_matrix: covMatrix }),
+      })
       if (!res.ok) throw new Error("Optimization failed")
       const data = await res.json()
 
-      // Build optimised treemap nodes
       const optimisedAssets: PortfolioAsset[] = portfolioAssets.map((a) => ({
         ...a,
-        currentValueUSD: Math.round(
-          (data.optimizedWeights[a.name] ?? 0) * totalValue,
-        ),
-        allocation:
-          Math.round((data.optimizedWeights[a.name] ?? 0) * 1000) / 10,
+        currentValueUSD: Math.round((data.optimizedWeights[a.name] ?? 0) * totalValue),
+        allocation: Math.round((data.optimizedWeights[a.name] ?? 0) * 1000) / 10,
       }))
+
+      // Dynamic Logic: Find the asset class that got the biggest boost
+      const topAsset = optimisedAssets.reduce((prev, current) => (prev.allocation > current.allocation) ? prev : current)
+      setReallocatedAsset(displayCategory(topAsset.assetClass))
 
       setOptimizedData(buildTreemapData(optimisedAssets))
       setTradeRecommendations(data.recommendations ?? [])
       setIsLiveData(data.is_live_data ?? true)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setIsOptimizing(false)
-    }
+    } catch (err) { console.error(err) } finally { setIsOptimizing(false) }
   }
 
   if (isAnalyticsLoading) {
     return (
       <div className="space-y-6">
-        <Card className="bg-card border-border animate-pulse">
-          <CardContent className="py-24 flex items-center justify-center">
-            <p className="text-muted-foreground">Loading portfolio data…</p>
-          </CardContent>
-        </Card>
+        <Card className="bg-card border-border animate-pulse"><CardContent className="py-24 flex items-center justify-center"><p className="text-muted-foreground">Loading portfolio data…</p></CardContent></Card>
       </div>
     )
   }
@@ -389,186 +290,57 @@ export function WealthAnalytics() {
       <MilestoneSummary />
       <Card className="bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2">
-            <PieChart className="size-5 text-primary" />
-            Portfolio Allocation
-          </CardTitle>
+          <CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2"><PieChart className="size-5 text-primary" />Portfolio Allocation</CardTitle>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button size="sm" onClick={handleOptimize} disabled={isOptimizing}>
-                {isOptimizing ? (
-                  <Loader2 className="size-4 animate-spin mr-2" />
-                ) : (
-                  <Sparkles className="size-4 mr-2" />
-                )}
-                Auto-Optimize Portfolio
-              </Button>
+              <Button size="sm" onClick={handleOptimize} disabled={isOptimizing}>{isOptimizing ? <Loader2 className="size-4 animate-spin mr-2" /> : <Sparkles className="size-4 mr-2" />}Auto-Optimize Portfolio</Button>
             </TooltipTrigger>
             <TooltipContent className="max-w-xs text-xs leading-relaxed">
-              Executes a{" "}
-              <GlossaryTerm term="Mean-Variance Optimization">Mean-Variance Optimization (MVO)</GlossaryTerm>{" "}
-              algorithm to project the{" "}
-              <GlossaryTerm term="Efficient Frontier" />,{" "}
-              identifying the exact asset weights that maximize your{" "}
-              <GlossaryTerm term="Sharpe Ratio">Sharpe ratio</GlossaryTerm>{" "}
-              subject to strict{" "}
-              <GlossaryTerm term="Liquidity Constraints">liquidity constraints</GlossaryTerm>{" "}
-              for your active liabilities.
+              Executes a <GlossaryTerm term="Mean-Variance Optimization">Mean-Variance Optimization (MVO)</GlossaryTerm> algorithm to project the <GlossaryTerm term="Efficient Frontier" />, identifying the exact asset weights that maximize your <GlossaryTerm term="Sharpe Ratio">Sharpe ratio</GlossaryTerm> subject to strict <GlossaryTerm term="Liquidity Constraints">liquidity constraints</GlossaryTerm> for your active liabilities.
             </TooltipContent>
           </Tooltip>
         </CardHeader>
         <CardContent>
-          {/* Loading skeleton */}
-          {isOptimizing && (
-            <div className="space-y-3 mb-6">
-              <Skeleton className="h-80 w-full animate-pulse rounded-lg" />
-            </div>
-          )}
-
-          {/* Treemaps: side-by-side when optimised */}
+          {isOptimizing && <Skeleton className="h-80 w-full animate-pulse rounded-lg mb-6" />}
           {!isOptimizing && (
-            <div
-              className={`grid gap-6 ${
-                optimizedData ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
-              }`}
-            >
-              {/* Current Allocation */}
+            <div className={`grid gap-6 ${optimizedData ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
               <div>
-                {optimizedData && (
-                  <p className="text-sm font-semibold text-muted-foreground mb-2">
-                    Current Allocation
-                  </p>
-                )}
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <Treemap
-                      data={flatData}
-                      dataKey="size"
-                      aspectRatio={4 / 3}
-                      stroke="none"
-                      content={<CustomTreemapContent />}
-                    >
-                      <RechartsTooltip content={<CustomTooltip />} />
-                    </Treemap>
-                  </ResponsiveContainer>
-                </div>
+                {optimizedData && <p className="text-sm font-semibold text-muted-foreground mb-2">Current Allocation</p>}
+                <div className="h-80"><ResponsiveContainer width="100%" height="100%"><Treemap data={flatData} dataKey="size" aspectRatio={4 / 3} stroke="none" content={<CustomTreemapContent />}><RechartsTooltip content={<CustomTooltip />} /></Treemap></ResponsiveContainer></div>
               </div>
-
-              {/* Optimised Allocation */}
               {optimizedData && (
                 <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-2">
-                    Optimized Allocation
-                  </p>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <Treemap
-                        data={optimizedData}
-                        dataKey="size"
-                        aspectRatio={4 / 3}
-                        stroke="none"
-                        content={<CustomTreemapContent />}
-                      >
-                        <RechartsTooltip content={<CustomTooltip />} />
-                      </Treemap>
-                    </ResponsiveContainer>
-                  </div>
+                  <p className="text-sm font-semibold text-muted-foreground mb-2">Optimized Allocation</p>
+                  <div className="h-80"><ResponsiveContainer width="100%" height="100%"><Treemap data={optimizedData} dataKey="size" aspectRatio={4 / 3} stroke="none" content={<CustomTreemapContent />}><RechartsTooltip content={<CustomTooltip />} /></Treemap></ResponsiveContainer></div>
                 </div>
               )}
             </div>
           )}
-
           <div className="flex flex-wrap gap-6 mt-6 justify-center">
-            {legend.map((item) => (
-              <LegendItem key={item.label} color={item.color} label={item.label} value={item.value} />
-            ))}
+            {legend.map((item) => <LegendItem key={item.label} color={item.color} label={item.label} value={item.value} />)}
           </div>
         </CardContent>
       </Card>
 
-      {/* Actionable Orders */}
       {tradeRecommendations.length > 0 && (
         <Card className="bg-card border-border">
-          <CardHeader>
-            <div className="flex flex-wrap items-center gap-3">
-              <CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2">
-                <Sparkles className="size-5 text-primary" />
-                Trade Recommendations
-              </CardTitle>
-              {isLiveData !== null && (
-                <span
-                  className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full border ${
-                    isLiveData
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
-                      : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"
-                  }`}
-                >
-                  {isLiveData ? "🟢 Live Market Data" : "🟡 Static Fallback Data"}
-                </span>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {tradeRecommendations.map((rec) => {
-                const isBuy = rec.action.includes("Buy")
-                const isSell = rec.action.includes("Sell")
-                return (
-                  <TradeCard key={rec.asset} rec={rec} isBuy={isBuy} isSell={isSell} isOptimizing={isOptimizing} />
-                )
-              })}
-            </div>
-          </CardContent>
+          <CardHeader><div className="flex flex-wrap items-center gap-3"><CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2"><Sparkles className="size-5 text-primary" />Trade Recommendations</CardTitle>{isLiveData !== null && <span className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full border ${isLiveData ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>{isLiveData ? "🟢 Live Market Data" : "🟡 Static Fallback Data"}</span>}</div></CardHeader>
+          <CardContent><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{tradeRecommendations.map((rec) => <TradeCard key={rec.asset} rec={rec} isBuy={rec.action.includes("Buy")} isSell={rec.action.includes("Sell")} isOptimizing={isOptimizing} />)}</div></CardContent>
         </Card>
       )}
 
       <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2">
-            <TableIcon className="size-5 text-primary" />
-            Top Holdings
-          </CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2"><TableIcon className="size-5 text-primary" />Top Holdings</CardTitle></CardHeader>
         <CardContent>
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Asset Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Value ($)</TableHead>
-                <TableHead className="text-right">Allocation (%)</TableHead>
-              </TableRow>
-            </TableHeader>
+            <TableHeader><TableRow><TableHead>Asset Name</TableHead><TableHead>Category</TableHead><TableHead className="text-right">Value ($)</TableHead><TableHead className="text-right">Allocation (%)</TableHead></TableRow></TableHeader>
             <TableBody>
               {portfolioAssets.map((asset) => (
                 <TableRow key={asset.assetId}>
                   <TableCell className="font-semibold">{asset.name}</TableCell>
-                  <TableCell>
-                    <span 
-                      className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                      style={{ 
-                        backgroundColor: (CATEGORY_COLORS[asset.assetClass]?.base || FALLBACK_COLOR) + '20',
-                        color: CATEGORY_COLORS[asset.assetClass]?.base || FALLBACK_COLOR 
-                      }}
-                    >
-                      {displayCategory(asset.assetClass)}
-                    </span>
-                  </TableCell>
+                  <TableCell><span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{ backgroundColor: (CATEGORY_COLORS[asset.assetClass]?.base || FALLBACK_COLOR) + '20', color: CATEGORY_COLORS[asset.assetClass]?.base || FALLBACK_COLOR }}>{displayCategory(asset.assetClass)}</span></TableCell>
                   <TableCell className="text-right font-medium">${asset.currentValueUSD.toLocaleString()}</TableCell>
-                  <TableCell className="text-right font-bold text-[#4277c3]">
-                    <div className="flex items-center justify-end gap-2">
-                      <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full rounded-full" 
-                          style={{ 
-                            width: `${asset.allocation}%`,
-                            backgroundColor: CATEGORY_COLORS[asset.assetClass]?.base || FALLBACK_COLOR
-                          }} 
-                        />
-                      </div>
-                      <span className="text-xs text-muted-foreground w-8">{asset.allocation}%</span>
-                    </div>
-                  </TableCell>
+                  <TableCell className="text-right font-bold text-[#4277c3]"><div className="flex items-center justify-end gap-2"><div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${asset.allocation}%`, backgroundColor: CATEGORY_COLORS[asset.assetClass]?.base || FALLBACK_COLOR }} /></div><span className="text-xs text-muted-foreground w-8">{asset.allocation}%</span></div></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -577,15 +349,8 @@ export function WealthAnalytics() {
       </Card>
 
       <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2">
-            <Activity className="size-5 text-primary" />
-            Risk Sensitivity Radar
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RiskSensitivityRadar isOptimized={!!optimizedData} />
-        </CardContent>
+        <CardHeader><CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2"><Activity className="size-5 text-primary" />Risk Sensitivity Radar</CardTitle></CardHeader>
+        <CardContent><RiskSensitivityRadar isOptimized={!!optimizedData} targetAsset={reallocatedAsset} /></CardContent>
       </Card>
     </div>
   )
