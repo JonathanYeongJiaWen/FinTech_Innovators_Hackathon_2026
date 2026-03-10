@@ -1,7 +1,7 @@
 # 💳 Myney: The Wealth Wellness Hub
 
 **Team Name:** XiaoJongBao  
-**Video Pitch:** [Insert YouTube Link Here]
+**Video Pitch:** [5min Youtube Pitch](https://youtu.be/3TEzqit_2x0)
 
 ### Live Demo
 * **Frontend Application:** [Myney](https://tinyurl.com/Myneyy)
