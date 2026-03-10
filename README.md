@@ -42,7 +42,7 @@ Built on a **fault-tolerant architecture** (FastAPI & Spring Boot) with a resili
 * **Scalability:** Built on a microservices-ready architecture (FastAPI + Spring Boot), allowing for easy integration with future Open Finance APIs like SGFinDex
 
 ## 🛡️ Feasibility & Compliance
-* **Regulatory Alignment:** Designed with MAS (Monetary Authority of Singapore) Guidelines on Individual Accountability and Conduct in mind, ensuring transparency in "AI Analysis".
+* **Regulatory Alignment:** Designed in accordance with the MAS FEAT Principles (Fairness, Ethics, Accountability, and Transparency). Our "AI Analysis" module prioritizes explainability, ensuring that the Wealth Coach insights are grounded in mathematical data rather than black-box hallucinations.
 * **Data Security:** Implements Zod-based schema validation and Java-side security protocols to ensure the integrity of the "Wealth Wallet".
 ---
 
