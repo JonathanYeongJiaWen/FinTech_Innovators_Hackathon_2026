@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { API_BASE } from "@/lib/api"
+import { useWalletData } from "@/hooks/use-wallet-data"
 import {
   Table,
   TableBody,
@@ -79,11 +80,154 @@ interface TradeRecommendation {
   rationale_source?: "ai" | "rule_based"
 }
 
+interface UnifiedHoldingRow {
+  key: string
+  assetLabel: string
+  ticker: string
+  assetClass: string
+  quantity: number
+  livePrice: number | null
+  totalValue: number
+  portfolioWeightPct: number
+  riskContributionPct: number
+}
+
 const MOCK_PARAMS: Record<string, { ret: number; vol: number }> = {
   Equities: { ret: 0.10, vol: 0.20 },
   Fixed_Income: { ret: 0.035, vol: 0.02 },
   Private_Equity: { ret: 0.12, vol: 0.15 },
   Digital_Assets: { ret: 0.15, vol: 0.30 },
+}
+
+const ASSET_CLASS_RISK_MULTIPLIER: Record<string, number> = {
+  equities: 1,
+  fixedincome: 0.35,
+  privateequity: 0.85,
+  digitalassets: 1.4,
+  private: 0.85,
+  digital: 1.4,
+  cash: 0.1,
+  other: 0.6,
+}
+
+function normalizeAssetClass(assetClass: string): string {
+  return assetClass.toLowerCase().replace(/[_\s-]/g, "")
+}
+
+function getRiskMultiplier(assetClass: string): number {
+  return ASSET_CLASS_RISK_MULTIPLIER[normalizeAssetClass(assetClass)] ?? ASSET_CLASS_RISK_MULTIPLIER.other
+}
+
+function normalizeTickerKey(rawTicker: string): string {
+  return rawTicker.trim().toUpperCase()
+}
+
+function extractTickerFromAssetName(name: string): string | null {
+  const match = name.match(/\(([^)]+)\)$/)
+  if (!match) return null
+  const parsed = normalizeTickerKey(match[1])
+  return parsed || null
+}
+
+function formatQuantity(row: UnifiedHoldingRow): string {
+  if (row.quantity <= 0) return "—"
+
+  const normalizedClass = normalizeAssetClass(row.assetClass)
+  const isCrypto = normalizedClass.includes("digital") || row.ticker.endsWith("-USD")
+  if (isCrypto) {
+    return row.quantity.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    })
+  }
+
+  const isSingularPrivateAsset = normalizedClass.includes("private") && row.quantity <= 1.000001
+  if (isSingularPrivateAsset) {
+    return "1"
+  }
+
+  return Math.round(row.quantity).toLocaleString()
+}
+
+function buildUnifiedHoldingsRows(
+  portfolioAssets: PortfolioAsset[],
+  walletHoldings: Array<{ name: string; ticker_or_symbol: string; asset_class: string; quantity: number; current_price: number; total_value: number }>,
+): UnifiedHoldingRow[] {
+  const merged = new Map<string, Omit<UnifiedHoldingRow, "portfolioWeightPct" | "riskContributionPct">>()
+
+  for (const holding of walletHoldings) {
+    const ticker = normalizeTickerKey(holding.ticker_or_symbol || "")
+    if (!ticker) continue
+
+    const key = ticker
+    const existing = merged.get(key)
+    const holdingQuantity = Number(holding.quantity ?? 0)
+    const mergedQuantity = (existing?.quantity ?? 0) + holdingQuantity
+    const mergedValue = (existing?.totalValue ?? 0) + holding.total_value
+    const currentLivePrice = holding.current_price > 0 ? holding.current_price : null
+
+    merged.set(key, {
+      key,
+      assetLabel: holding.name,
+      ticker,
+      assetClass: displayCategory(holding.asset_class),
+      quantity: mergedQuantity,
+      livePrice: currentLivePrice ?? existing?.livePrice ?? null,
+      totalValue: mergedValue,
+    })
+  }
+
+  for (const asset of portfolioAssets) {
+    const extractedTicker = extractTickerFromAssetName(asset.name)
+    const key = extractedTicker
+      ? normalizeTickerKey(extractedTicker)
+      : `legacy:${asset.assetId}`
+
+    const existing = merged.get(key)
+    if (existing) {
+      merged.set(key, {
+        ...existing,
+        assetLabel: existing.assetLabel || asset.name,
+        assetClass: existing.assetClass || displayCategory(asset.assetClass),
+      })
+      continue
+    }
+
+    merged.set(key, {
+      key,
+      assetLabel: asset.name,
+      ticker: extractedTicker ?? "—",
+      assetClass: displayCategory(asset.assetClass),
+      quantity: 1,
+      livePrice: null,
+      totalValue: asset.currentValueUSD,
+    })
+  }
+
+  const rows = [...merged.values()]
+  const totalPortfolioValue = rows.reduce((sum, row) => sum + row.totalValue, 0)
+
+  const weightedRows = rows.map((row) => {
+    const portfolioWeightPct = totalPortfolioValue > 0 ? (row.totalValue / totalPortfolioValue) * 100 : 0
+    const riskScore = portfolioWeightPct * getRiskMultiplier(row.assetClass)
+    return { ...row, portfolioWeightPct, riskScore }
+  })
+
+  const totalRiskScore = weightedRows.reduce((sum, row) => sum + row.riskScore, 0)
+
+  return weightedRows
+    .map((row) => ({
+      key: row.key,
+      assetLabel: row.assetLabel,
+      ticker: row.ticker,
+      assetClass: row.assetClass,
+      quantity: row.quantity,
+      livePrice: row.livePrice,
+      totalValue: row.totalValue,
+      portfolioWeightPct: row.portfolioWeightPct,
+      riskContributionPct: totalRiskScore > 0 ? (row.riskScore / totalRiskScore) * 100 : 0,
+    }))
+    .sort((a, b) => b.portfolioWeightPct - a.portfolioWeightPct)
 }
 
 // ---------------------------------------------------------------------------
@@ -223,6 +367,7 @@ export function WealthAnalytics() {
   const [tradeRecommendations, setTradeRecommendations] = useState<TradeRecommendation[]>([])
   const [isLiveData, setIsLiveData] = useState<boolean | null>(null)
   const [reallocatedAsset, setReallocatedAsset] = useState<string>("")
+  const { data: walletData } = useWalletData("client_001")
 
   useEffect(() => {
     const fetchAssets = async () => {
@@ -292,6 +437,7 @@ export function WealthAnalytics() {
 
   const flatData = buildTreemapData(portfolioAssets)
   const legend = buildLegend(portfolioAssets)
+  const unifiedHoldings = buildUnifiedHoldingsRows(portfolioAssets, walletData?.holdings ?? [])
 
   return (
     <div className="space-y-6">
@@ -338,17 +484,46 @@ export function WealthAnalytics() {
       )}
 
       <Card className="bg-card border-border">
-        <CardHeader><CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2"><TableIcon className="size-5 text-primary" />Top Holdings</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-lg font-medium text-muted-foreground flex items-center gap-2"><TableIcon className="size-5 text-primary" />Portfolio Breakdown</CardTitle></CardHeader>
         <CardContent>
           <Table>
-            <TableHeader><TableRow><TableHead>Asset Name</TableHead><TableHead>Category</TableHead><TableHead className="text-right">Value ($)</TableHead><TableHead className="text-right">Allocation (%)</TableHead></TableRow></TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Asset Name/Ticker</TableHead>
+                <TableHead className="text-right">Quantity</TableHead>
+                <TableHead className="text-right">Live Price</TableHead>
+                <TableHead className="text-right">Total Value</TableHead>
+                <TableHead className="text-right">Portfolio Weight (%)</TableHead>
+                <TableHead className="text-right">Risk Contribution</TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
-              {portfolioAssets.map((asset) => (
-                <TableRow key={asset.assetId}>
-                  <TableCell className="font-semibold">{asset.name}</TableCell>
-                  <TableCell><span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{ backgroundColor: (CATEGORY_COLORS[asset.assetClass]?.base || FALLBACK_COLOR) + '20', color: CATEGORY_COLORS[asset.assetClass]?.base || FALLBACK_COLOR }}>{displayCategory(asset.assetClass)}</span></TableCell>
-                  <TableCell className="text-right font-medium">${asset.currentValueUSD.toLocaleString()}</TableCell>
-                  <TableCell className="text-right font-bold text-[#4277c3]"><div className="flex items-center justify-end gap-2"><div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${asset.allocation}%`, backgroundColor: CATEGORY_COLORS[asset.assetClass]?.base || FALLBACK_COLOR }} /></div><span className="text-xs text-muted-foreground w-8">{asset.allocation}%</span></div></TableCell>
+              {unifiedHoldings.map((asset) => (
+                <TableRow key={asset.key}>
+                  <TableCell>
+                    <div>
+                      <p className="font-semibold">{asset.assetLabel}</p>
+                      <p className="text-xs text-muted-foreground">{asset.ticker} • {asset.assetClass}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-medium tabular-nums">{formatQuantity(asset)}</TableCell>
+                  <TableCell className="text-right font-medium tabular-nums">
+                    {asset.livePrice !== null
+                      ? `$${asset.livePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="text-right font-medium tabular-nums">
+                    ${asset.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </TableCell>
+                  <TableCell className="text-right font-bold text-[#4277c3]">
+                    <div className="flex items-center justify-end gap-2">
+                      <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${Math.min(asset.portfolioWeightPct, 100)}%`, backgroundColor: "#4277c3" }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground w-12 tabular-nums">{asset.portfolioWeightPct.toFixed(1)}%</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-semibold tabular-nums">{asset.riskContributionPct.toFixed(1)}%</TableCell>
                 </TableRow>
               ))}
             </TableBody>

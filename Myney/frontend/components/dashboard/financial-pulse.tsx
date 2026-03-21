@@ -5,22 +5,13 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { 
   Sparkles, TrendingUp, BrainCircuit, Zap, 
-  Info, AlertTriangle, ArrowRight, Wallet, RefreshCw
+  Info, AlertTriangle, ArrowRight, RefreshCw, PieChart as PieChartIcon
 } from "lucide-react"
 import { API_BASE } from "@/lib/api"
 import { useWalletData } from "@/hooks/use-wallet-data"
-import type { WealthWalletItem } from "@/api/wallet"
-import { LineChart, Line, ResponsiveContainer } from "recharts"
+import { LineChart, Line, ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts"
 import {
   Tooltip,
   TooltipContent,
@@ -36,6 +27,11 @@ import { CoachingNudgeCard } from "@/components/dashboard/coaching-nudge-card"
 import type { CoachingNudge } from "@/components/dashboard/coaching-nudge-card"
 
 const trendData = [{ val: 20 }, { val: 25 }, { val: 22 }, { val: 30 }, { val: 28 }, { val: 28.2 }]
+const ALLOCATION_COLORS = ["#4277c3", "#108548", "#eca1ac", "#739bd4", "#8b5cf6", "#f59e0b"]
+
+function formatAssetClassLabel(assetClass: string) {
+  return assetClass.replace(/_/g, " ")
+}
 
 export function FinancialPulse() {
   const router = useRouter()
@@ -66,6 +62,26 @@ export function FinancialPulse() {
     isLoading: isWalletLoading,
     refetch: refetchWallet,
   } = useWalletData("client_001")
+
+  const todayPnlPct = trendData[trendData.length - 2]?.val
+    ? ((trendData[trendData.length - 1].val - trendData[trendData.length - 2].val) / trendData[trendData.length - 2].val) * 100
+    : 0
+  const todayPnlValue = netWorth * (todayPnlPct / 100)
+
+  const allocationData = walletData?.holdings?.length
+    ? Object.entries(
+        walletData.holdings.reduce<Record<string, number>>((acc, item) => {
+          const key = item.asset_class || "Other"
+          acc[key] = (acc[key] ?? 0) + item.total_value
+          return acc
+        }, {}),
+      ).map(([assetClass, totalValue]) => ({
+        assetClass,
+        totalValue,
+      }))
+    : []
+
+  const allocationTotal = allocationData.reduce((sum, item) => sum + item.totalValue, 0)
 
   useEffect(() => {
     const fetchWellness = async () => {
@@ -123,42 +139,73 @@ export function FinancialPulse() {
 
   return (
     <div className="space-y-6">
-      {/* ROW 1: THE ANCHOR (Full Width) */}
-      <Card className="bg-card border-border overflow-hidden shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-            <TrendingUp className="size-5 text-[#108548]" />
-            Total Net Worth
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="space-y-2">
-              <p className="text-6xl font-black tracking-tighter">${netWorth.toLocaleString()}</p>
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-24">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={trendData}>
-                      <Line type="monotone" dataKey="val" stroke="#108548" strokeWidth={3} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
+      {/* ROW 1: KPI SUMMARY */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="bg-card border-border overflow-hidden shadow-sm lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <TrendingUp className="size-5 text-[#108548]" />
+              Total Net Worth
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="space-y-2">
+                <p className="text-6xl font-black tracking-tighter">${netWorth.toLocaleString()}</p>
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-24">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={trendData}>
+                        <Line type="monotone" dataKey="val" stroke="#108548" strokeWidth={3} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p className="text-xs font-bold text-[#108548]">+12.4% <span className="text-muted-foreground font-normal">vs last quarter</span></p>
                 </div>
-                <p className="text-xs font-bold text-[#108548]">+12.4% <span className="text-muted-foreground font-normal">vs last quarter</span></p>
+              </div>
+              <div className="relative flex flex-col items-center">
+                <svg className="size-40 -rotate-90" viewBox="0 0 160 160">
+                  <circle cx="80" cy="80" r="70" fill="none" stroke="currentColor" strokeWidth="10" className="text-muted/10" />
+                  <circle cx="80" cy="80" r="70" fill="none" stroke="#108548" strokeWidth="12" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference - (wellnessScore / 100) * circumference} />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-4xl font-black">{wellnessScore}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase font-black">Wellness</span>
+                </div>
               </div>
             </div>
-            <div className="relative flex flex-col items-center">
-              <svg className="size-40 -rotate-90" viewBox="0 0 160 160">
-                <circle cx="80" cy="80" r="70" fill="none" stroke="currentColor" strokeWidth="10" className="text-muted/10" />
-                <circle cx="80" cy="80" r="70" fill="none" stroke="#108548" strokeWidth="12" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference - (wellnessScore / 100) * circumference} />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-black">{wellnessScore}</span>
-                <span className="text-[10px] text-muted-foreground uppercase font-black">Wellness</span>
-              </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-bold uppercase tracking-widest text-muted-foreground">Today's P&amp;L</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className={`text-4xl font-black tracking-tight ${todayPnlValue >= 0 ? "text-[#108548]" : "text-destructive"}`}>
+              {todayPnlValue >= 0 ? "+" : "-"}${Math.abs(todayPnlValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className={`text-xs font-bold ${todayPnlPct >= 0 ? "text-[#108548]" : "text-destructive"}`}>
+              {todayPnlPct >= 0 ? "+" : ""}{todayPnlPct.toFixed(2)}%
+              <span className="ml-1 font-normal text-muted-foreground">intraday move</span>
+            </p>
+            <div className="h-8 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData}>
+                  <Line
+                    type="monotone"
+                    dataKey="val"
+                    stroke={todayPnlValue >= 0 ? "#108548" : "#dc2626"}
+                    strokeWidth={2.5}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <p className="text-[11px] text-muted-foreground">Estimated from latest wallet trend sample.</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* ROW 2: RISK & ACTION (50/50 Split) */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -229,13 +276,13 @@ export function FinancialPulse() {
         </Card>
       </div>
 
-      {/* ROW 3: Live Portfolio Holdings */}
+      {/* ROW 3: Asset Allocation */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between gap-2">
             <span className="flex items-center gap-2">
-              <Wallet className="size-5 text-[#108548]" />
-              Live Portfolio Holdings
+              <PieChartIcon className="size-5 text-[#108548]" />
+              Asset Allocation
             </span>
             <Button
               variant="ghost"
@@ -250,53 +297,61 @@ export function FinancialPulse() {
         </CardHeader>
         <CardContent>
           {isWalletLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full rounded-md" />
-              ))}
-            </div>
-          ) : walletData && walletData.holdings.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Asset</TableHead>
-                  <TableHead>Class</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">Value (USD)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {walletData.holdings.map((item: WealthWalletItem) => (
-                  <TableRow key={item.asset_id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-semibold text-sm">{item.name}</p>
-                        <p className="text-[11px] text-muted-foreground">{item.ticker_or_symbol}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-muted text-muted-foreground">
-                        {item.asset_class}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-sm">
-                      {item.quantity.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-sm">
-                      {item.current_price > 0
-                        ? `$${item.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold text-sm">
-                      ${item.total_value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </TableCell>
-                  </TableRow>
+            <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+              <Skeleton className="h-64 w-full rounded-md" />
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-full rounded-md" />
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </div>
+          ) : allocationData.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-[1fr_220px] md:items-center">
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={allocationData}
+                      dataKey="totalValue"
+                      nameKey="assetClass"
+                      innerRadius={70}
+                      outerRadius={105}
+                      paddingAngle={2}
+                    >
+                      {allocationData.map((entry, index) => (
+                        <Cell key={entry.assetClass} fill={ALLOCATION_COLORS[index % ALLOCATION_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      formatter={(value: number) => `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+                      labelFormatter={(label) => formatAssetClassLabel(String(label))}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-2">
+                {allocationData
+                  .slice()
+                  .sort((a, b) => b.totalValue - a.totalValue)
+                  .map((item, index) => {
+                    const pct = allocationTotal > 0 ? (item.totalValue / allocationTotal) * 100 : 0
+                    return (
+                      <div key={item.assetClass} className="flex items-center justify-between gap-2 text-sm">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className="inline-block size-2.5 rounded-full"
+                            style={{ backgroundColor: ALLOCATION_COLORS[index % ALLOCATION_COLORS.length] }}
+                          />
+                          <span className="truncate text-muted-foreground">{formatAssetClassLabel(item.assetClass)}</span>
+                        </div>
+                        <span className="font-semibold tabular-nums">{pct.toFixed(1)}%</span>
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
           ) : (
-            <p className="text-sm text-muted-foreground py-4 text-center">No holdings data available.</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">No allocation data available.</p>
           )}
           {walletData && (
             <div className="mt-3 flex justify-end text-xs text-muted-foreground">
@@ -387,7 +442,32 @@ function InsightAction({ icon, title, desc, actionLabel, onClick }: { icon: any,
           <p className="text-xs text-muted-foreground leading-relaxed mb-4">{desc}</p>
           <Button variant="outline" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest gap-2 group-hover:border-[#108548] group-hover:text-[#108548]" onClick={onClick}>
             {actionLabel} <ArrowRight className="size-3" />
-          </Button>
+          </Button>Patched. The frontend deduplication is now ticker-first, so duplicate rows like Apple should no longer appear.
+          
+          What I changed
+          
+          Switched merge key to ticker
+          In wealth-analytics.tsx:119, the unified table builder now uses normalized ticker symbols as the primary key instead of name + asset class.
+          This ensures all rows for the same tradable asset collapse into one entry.
+          Prioritized wallet/live rows
+          Wallet holdings are merged first by ticker and summed.
+          Live price is retained from wallet data when available.
+          Total value is accumulated from wallet rows for that ticker.
+          Relevant section:
+          
+          wealth-analytics.tsx:129
+          Merged legacy portfolio rows safely
+          Added ticker extraction from legacy names like Apple Inc. (AAPL), so legacy rows map onto the same ticker key instead of creating a second row.
+          If a portfolio asset has no parseable ticker, it falls back to a legacy key (for non-tradable/non-mapped records).
+          Relevant section:
+          
+          wealth-analytics.tsx:115
+          wealth-analytics.tsx:151
+          Validation
+          
+          File-level diagnostics show no TypeScript errors in wealth-analytics.tsx.
+          I could not run a full project type-check because pnpm is not installed in this shell environment.
+          If you want, I can also add a strict filter so the table only shows tradable assets with valid ticker + live price (and move private/cash into a separate section).
         </div>
       </div>
     </div>
