@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from "react"
 import {
-  LineChart,
+  AreaChart,
+  Area,
   Line,
   XAxis,
   YAxis,
@@ -153,7 +154,13 @@ export function DisciplineChart() {
 
         <div className="h-[320px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={filteredData} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+            <AreaChart data={filteredData} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+              <defs>
+                <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3CBBBA" stopOpacity={0.1} />
+                  <stop offset="100%" stopColor="#3CBBBA" stopOpacity={0} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis
                 dataKey="month"
@@ -172,7 +179,7 @@ export function DisciplineChart() {
               <Line
                 type="monotone"
                 dataKey="baseline"
-                stroke="#94a3b8"
+                stroke="#d0d0d0"
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 dot={false}
@@ -180,16 +187,17 @@ export function DisciplineChart() {
                 style={{ transition: "opacity 500ms ease-in-out" }}
               />
 
-              {/* Actual Portfolio */}
-              <Line
+              {/* Actual Portfolio with gradient fill */}
+              <Area
                 type="monotone"
                 dataKey="actual"
-                stroke="#2563eb"
+                stroke="#3CBBBA"
                 strokeWidth={3}
+                fill="url(#actualGradient)"
                 dot={false}
                 activeDot={{ r: 5, strokeWidth: 2, fill: "#fff" }}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </div>
 

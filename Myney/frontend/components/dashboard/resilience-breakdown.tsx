@@ -72,7 +72,7 @@ export function ResilienceBreakdown({
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
-              <PolarGrid stroke="hsl(var(--border))" />
+              <PolarGrid stroke="rgba(200, 200, 200, 0.15)" />
               <PolarAngleAxis
                 dataKey="label"
                 tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600 }}
@@ -80,11 +80,11 @@ export function ResilienceBreakdown({
               <Radar
                 name="Resilience"
                 dataKey="score"
-                stroke="#10b981"
-                fill="#10b981"
-                fillOpacity={0.3}
+                stroke="#3CBBBA"
+                fill="#3CBBBA"
+                fillOpacity={0.2}
                 strokeWidth={2}
-                dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }}
+                dot={{ r: 4, fill: "#3CBBBA", strokeWidth: 0 }}
               />
             </RadarChart>
           </ResponsiveContainer>
