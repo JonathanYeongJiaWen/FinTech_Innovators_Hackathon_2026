@@ -442,32 +442,7 @@ function InsightAction({ icon, title, desc, actionLabel, onClick }: { icon: any,
           <p className="text-xs text-muted-foreground leading-relaxed mb-4">{desc}</p>
           <Button variant="outline" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest gap-2 group-hover:border-[#108548] group-hover:text-[#108548]" onClick={onClick}>
             {actionLabel} <ArrowRight className="size-3" />
-          </Button>Patched. The frontend deduplication is now ticker-first, so duplicate rows like Apple should no longer appear.
-          
-          What I changed
-          
-          Switched merge key to ticker
-          In wealth-analytics.tsx:119, the unified table builder now uses normalized ticker symbols as the primary key instead of name + asset class.
-          This ensures all rows for the same tradable asset collapse into one entry.
-          Prioritized wallet/live rows
-          Wallet holdings are merged first by ticker and summed.
-          Live price is retained from wallet data when available.
-          Total value is accumulated from wallet rows for that ticker.
-          Relevant section:
-          
-          wealth-analytics.tsx:129
-          Merged legacy portfolio rows safely
-          Added ticker extraction from legacy names like Apple Inc. (AAPL), so legacy rows map onto the same ticker key instead of creating a second row.
-          If a portfolio asset has no parseable ticker, it falls back to a legacy key (for non-tradable/non-mapped records).
-          Relevant section:
-          
-          wealth-analytics.tsx:115
-          wealth-analytics.tsx:151
-          Validation
-          
-          File-level diagnostics show no TypeScript errors in wealth-analytics.tsx.
-          I could not run a full project type-check because pnpm is not installed in this shell environment.
-          If you want, I can also add a strict filter so the table only shows tradable assets with valid ticker + live price (and move private/cash into a separate section).
+          </Button>
         </div>
       </div>
     </div>
