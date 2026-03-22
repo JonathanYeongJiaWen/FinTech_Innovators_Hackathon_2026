@@ -336,11 +336,6 @@ function TradeCard({ rec, isBuy, isSell, isOptimizing }: { rec: TradeRecommendat
             {rec.rationale ? (
               <>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{renderWithGlossary(rec.rationale)}</p>
-                {rec.rationale_source === "rule_based" && (
-                  <p className="mt-1.5 text-[10px] text-amber-500 dark:text-amber-400 flex items-center gap-1">
-                    <span>⚠</span> Auto-generated (AI quota reached)
-                  </p>
-                )}
               </>
             ) : isOptimizing ? (
               <div className="space-y-1.5">
