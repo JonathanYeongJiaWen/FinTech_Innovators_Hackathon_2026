@@ -1,13 +1,19 @@
 "use client"
 
-import { ResponsiveRadar } from "@nivo/radar"
+import {
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  Radar,
+  ResponsiveContainer,
+} from "recharts"
 
 // Aggregated Portfolio Risk Data
 const AGGREGATED_RISK_DATA = [
   { driver: "Tech Sector", current: 88, optimized: 45 },
   { driver: "Macro Policy", current: 52, optimized: 58 },
   { driver: "Digital Sentiment", current: 92, optimized: 30 },
-  { driver: "Interest Rates", current: 25, optimized: 45 }, 
+  { driver: "Interest Rates", current: 25, optimized: 45 },
   { driver: "Market Volatility", current: 78, optimized: 40 },
 ]
 
@@ -20,33 +26,38 @@ export function RiskSensitivityRadar({
   isOptimized = false, 
   targetAsset = "Diversified Assets" 
 }: RiskSensitivityRadarProps) {
-  const chartKeys = isOptimized ? ["current", "optimized"] : ["current"]
-
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
       <div className="flex-1 bg-card border border-border rounded-xl p-4">
         <div className="h-[480px] w-full">
-          <ResponsiveRadar
-            data={AGGREGATED_RISK_DATA}
-            indexBy="driver"
-            keys={chartKeys}
-            maxValue={100}
-            margin={{ top: 40, right: 40, bottom: 40, left: 40 }}
-            curve="linearClosed"
-            borderWidth={3}
-            borderColor={{ from: "color" }}
-            gridLevels={5}
-            gridShape="circular"
-            enableDots={true}
-            dotSize={8}
-            colors={["#ef4444", "#10b981"]}
-            fillOpacity={0.15}
-            animate={true}
-            theme={{
-              text: { fontSize: 12, fill: "hsl(var(--foreground))", fontWeight: 600 },
-              grid: { line: { stroke: "hsl(var(--muted-foreground) / 0.3)", strokeWidth: 1.5 } },
-            }}
-          />
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart data={AGGREGATED_RISK_DATA} outerRadius="75%" margin={{ top: 24, right: 30, bottom: 24, left: 30 }}>
+              <PolarGrid stroke="#CBD5E1" strokeWidth={1.5} />
+              <PolarAngleAxis dataKey="driver" tick={{ fill: "#1A1A1B", fontSize: 12, fontWeight: 600 }} />
+
+              <Radar
+                name="Current Risk"
+                dataKey="current"
+                stroke="#ef4444"
+                fill="#ef4444"
+                fillOpacity={0.18}
+                strokeWidth={3}
+                dot={{ r: 4, fill: "#ef4444", strokeWidth: 0 }}
+              />
+
+              {isOptimized && (
+                <Radar
+                  name="Optimized Risk"
+                  dataKey="optimized"
+                  stroke="#10b981"
+                  fill="#10b981"
+                  fillOpacity={0.12}
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: "#10b981", strokeWidth: 0 }}
+                />
+              )}
+            </RadarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
@@ -93,15 +104,7 @@ export function RiskSensitivityRadar({
               </div>
               <span className="text-red-500 font-bold">High</span>
             </div>
-            {isOptimized && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span>Optimized Risk</span>
-                </div>
-                <span className="text-emerald-500 font-bold">Balanced</span>
-              </div>
-            )}
+            
           </div>
         </div>
       </div>

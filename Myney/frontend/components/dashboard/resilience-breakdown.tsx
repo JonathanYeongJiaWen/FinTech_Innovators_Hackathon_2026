@@ -6,6 +6,7 @@ import {
   PolarAngleAxis,
   Radar,
   ResponsiveContainer,
+  Tooltip as RechartsTooltip,
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -35,6 +36,7 @@ export const MOCK_RESILIENCE_DATA: ResilienceAxis[] = [
   { label: "Diversification Discipline", score: 60 },
   { label: "Independent Strategy", score: 90 },
   { label: "Long-Term Vision", score: 88 },
+  { label: "Risk Sensitivity", score: 74 },
 ]
 
 /* ── component ── */
@@ -72,19 +74,30 @@ export function ResilienceBreakdown({
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
-              <PolarGrid stroke="rgba(200, 200, 200, 0.15)" />
+              <PolarGrid stroke="#CBD5E1" strokeWidth={1.5} />
               <PolarAngleAxis
                 dataKey="label"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600 }}
+                tick={{ fill: "#1A1A1B", fontSize: 11, fontWeight: 600 }}
+              />
+              <RechartsTooltip
+                formatter={(value: number) => [value, "Score"]}
+                contentStyle={{
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: "12px",
+                  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.10)",
+                }}
+                itemStyle={{ color: "#1A1A1B", fontWeight: 600 }}
+                labelStyle={{ color: "#1A1A1B", fontWeight: 700 }}
               />
               <Radar
                 name="Resilience"
                 dataKey="score"
-                stroke="#3CBBBA"
-                fill="#3CBBBA"
-                fillOpacity={0.2}
-                strokeWidth={2}
-                dot={{ r: 4, fill: "#3CBBBA", strokeWidth: 0 }}
+                stroke="#4A89FF"
+                fill="#4A89FF"
+                fillOpacity={0.3}
+                strokeWidth={3}
+                dot={{ r: 4, fill: "#4A89FF", strokeWidth: 0 }}
               />
             </RadarChart>
           </ResponsiveContainer>

@@ -68,14 +68,14 @@ function ChartTooltip({ active, payload, label, showBaseline }: any) {
   const baseline = payload.find((p: any) => p.dataKey === "baseline")?.value as number | undefined
 
   return (
-    <div className="rounded-lg border bg-popover px-3.5 py-2.5 text-sm shadow-md">
-      <p className="mb-1.5 font-medium text-popover-foreground">{label}</p>
+    <div className="rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-sm shadow-[0_10px_24px_rgba(15,23,42,0.10)]">
+      <p className="mb-1.5 font-semibold text-[#1A1A1B]">{label}</p>
       {actual !== undefined && (
-        <p className="text-blue-600">Your Value: {fmt(actual)}</p>
+        <p className="text-[#1A1A1B]">Your Value: {fmt(actual)}</p>
       )}
       {showBaseline && baseline !== undefined && (
         <>
-          <p className="text-slate-400">Baseline Value: {fmt(baseline)}</p>
+          <p className="text-[#1A1A1B]">Zero-Trade Baseline: {fmt(baseline)}</p>
           {actual !== undefined && (
             <p className={`mt-1 font-semibold ${actual - baseline >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
               Behavioral Alpha: {actual - baseline >= 0 ? "+" : ""}
@@ -157,8 +157,8 @@ export function DisciplineChart() {
             <AreaChart data={filteredData} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
               <defs>
                 <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3CBBBA" stopOpacity={0.1} />
-                  <stop offset="100%" stopColor="#3CBBBA" stopOpacity={0} />
+                  <stop offset="0%" stopColor="rgba(74, 137, 255, 0.2)" stopOpacity={1} />
+                  <stop offset="100%" stopColor="rgba(74, 137, 255, 0)" stopOpacity={1} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -179,11 +179,12 @@ export function DisciplineChart() {
               <Line
                 type="monotone"
                 dataKey="baseline"
-                stroke="#d0d0d0"
+                stroke="#94A3B8"
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 dot={false}
                 opacity={showBaseline ? 1 : 0}
+                name="Zero-Trade Baseline"
                 style={{ transition: "opacity 500ms ease-in-out" }}
               />
 
@@ -191,10 +192,15 @@ export function DisciplineChart() {
               <Area
                 type="monotone"
                 dataKey="actual"
-                stroke="#3CBBBA"
-                strokeWidth={3}
+                stroke="#4A89FF"
+                strokeWidth={4}
                 fill="url(#actualGradient)"
-                dot={false}
+                dot={(props: any) => {
+                  const isLast = props.index === filteredData.length - 1
+                  if (!isLast) return null
+                  return <circle key={`final-dot-${props.index}`} cx={props.cx} cy={props.cy} r={5} fill="#4A89FF" stroke="#4A89FF" />
+                }}
+                name="Portfolio Value"
                 activeDot={{ r: 5, strokeWidth: 2, fill: "#fff" }}
               />
             </AreaChart>
